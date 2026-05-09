@@ -6,4 +6,5 @@
 __pycache__/
 *.py[cod]
 secrets.yaml
+documents/AP33772S.pdf
 documents/AP33772s.py
