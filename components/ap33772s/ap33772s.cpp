@@ -294,6 +294,14 @@ void AP33772SComponent::request_power_profiles_() {
   }
 
   if (!any_pdo) {
+    for (const auto &profile : this->target_profiles_) {
+      if (fabs(profile.target_voltage - 5.0f) <= 0.1f) {
+        ESP_LOGCONFIG(TAG, "  No PDOs (non-PD charger), using default 5V");
+        this->request_sent_ = true;
+        this->use_default_5v_ = true;
+        return;
+      }
+    }
     ESP_LOGW(TAG, "  No PDOs detected yet, cannot request power profile");
     return;
   }
@@ -331,6 +339,12 @@ void AP33772SComponent::loop() {
 
   if (this->first_loop_) {
     this->first_loop_ = false;
+    if (this->use_default_5v_) {
+      ESP_LOGCONFIG(TAG, "  Using default 5V, firing success trigger");
+      this->pd_negotiation_success_trigger_.trigger();
+      this->request_done_ = true;
+      return;
+    }
     if (!this->target_profiles_.empty() && !this->request_sent_) {
       ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
       this->pd_negotiation_failure_trigger_.trigger();
