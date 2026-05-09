@@ -1,6 +1,9 @@
 #pragma once
 
+#include <vector>
+
 #include "esphome/components/i2c/i2c.h"
+#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 
 namespace esphome {
@@ -31,9 +34,15 @@ union PDOData {
   } avs;
 };
 
+struct PowerProfile {
+  float target_voltage;
+  float target_current;  // -1.0 means "no current requirement"
+};
+
 class AP33772SComponent : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
+  void loop() override;
   void dump_config() override;
   bool read_u8(uint8_t reg, uint8_t *value);
   bool read_u16_le(uint8_t reg, uint16_t *value);
@@ -52,6 +61,10 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void set_ocp_threshold(uint8_t x) { this->ocp_threshold_user_ = x; }
   void set_otp_threshold(uint8_t x) { this->otp_threshold_user_ = x; }
   void set_derating_threshold(uint8_t x) { this->derating_threshold_user_ = x; }
+  void add_target_profile(float voltage, float current) { this->target_profiles_.push_back({voltage, current}); }
+  void set_request_current_limit(bool x) { this->request_current_limit_ = x; }
+  Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
+  Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
 
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);
@@ -59,6 +72,13 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void read_pdos_();
   void log_pdo_(int idx);
   const char *current_range_str_(uint8_t val) const;
+  float pdo_voltage_(int idx) const;
+  float pdo_min_voltage_(int idx) const;
+  float pdo_max_current_(int idx) const;
+  bool pdo_is_fixed_(int idx) const;
+  bool pdo_is_detected_(int idx) const;
+  void write_pd_reqmsg_(uint8_t pdo_index, uint8_t voltage_sel, uint8_t current_sel);
+  void request_power_profiles_();
 
   bool detected_{false};
   uint8_t status_{0};
@@ -66,6 +86,15 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   uint8_t config_{0};
   uint8_t pdconfig_{0};
   PDOData pdos_[13];
+
+  std::vector<PowerProfile> target_profiles_;
+  bool request_sent_{false};
+  bool request_done_{false};
+  bool request_current_limit_{false};
+  bool first_loop_{true};
+  int msgrlt_retries_{0};
+  Trigger<> pd_negotiation_success_trigger_;
+  Trigger<> pd_negotiation_failure_trigger_;
 
   uint8_t config_user_{0xF8};
   uint8_t pdconfig_user_{0x03};

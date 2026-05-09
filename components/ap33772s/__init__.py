@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome import automation
 from esphome.components import i2c
 from esphome.const import CONF_ID
 
@@ -19,6 +20,12 @@ CONF_OVP_OFFSET = "ovp_offset"
 CONF_OCP_THRESHOLD = "ocp_threshold"
 CONF_OTP_THRESHOLD = "otp_threshold"
 CONF_DR_THRESHOLD = "derating_threshold"
+CONF_TARGET_PROFILES = "target_profiles"
+CONF_REQUEST_CURRENT_LIMIT = "request_current_limit"
+CONF_ON_PD_NEGOTIATION_SUCCESS = "on_pd_negotiation_success"
+CONF_ON_PD_NEGOTIATION_FAILURE = "on_pd_negotiation_failure"
+_CONF_PROFILE_VOLTAGE = "voltage"
+_CONF_PROFILE_CURRENT = "current"
 
 ap33772s_ns = cg.esphome_ns.namespace("ap33772s")
 AP33772SComponent = ap33772s_ns.class_(
@@ -49,6 +56,13 @@ def validate_ocp_threshold(value):
     return raw
 
 
+PROFILE_SCHEMA = cv.Schema(
+    {
+        cv.Required(_CONF_PROFILE_VOLTAGE): cv.positive_float,
+        cv.Optional(_CONF_PROFILE_CURRENT): cv.positive_float,
+    }
+)
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
@@ -66,6 +80,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_OCP_THRESHOLD, default="auto"): validate_ocp_threshold,
             cv.Optional(CONF_OTP_THRESHOLD, default=120): cv.int_range(0, 255),
             cv.Optional(CONF_DR_THRESHOLD, default=120): cv.int_range(0, 255),
+            cv.Optional(CONF_TARGET_PROFILES): cv.ensure_list(PROFILE_SCHEMA),
+            cv.Optional(CONF_REQUEST_CURRENT_LIMIT, default=False): cv.boolean,
+            cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(single=True),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -91,3 +109,18 @@ async def to_code(config):
     cg.add(var.set_ocp_threshold(config[CONF_OCP_THRESHOLD]))
     cg.add(var.set_otp_threshold(config[CONF_OTP_THRESHOLD]))
     cg.add(var.set_derating_threshold(config[CONF_DR_THRESHOLD]))
+    cg.add(var.set_request_current_limit(config[CONF_REQUEST_CURRENT_LIMIT]))
+
+    if target_profiles := config.get(CONF_TARGET_PROFILES):
+        for profile in target_profiles:
+            voltage = profile[_CONF_PROFILE_VOLTAGE]
+            current = profile.get(_CONF_PROFILE_CURRENT, -1.0)
+            cg.add(var.add_target_profile(voltage, current))
+
+    for conf in config.get(CONF_ON_PD_NEGOTIATION_SUCCESS, []):
+        trigger = cg.new_Pvariable(conf[CONF_ID], var.get_pd_negotiation_success_trigger())
+        await automation.build_automation(trigger, [], conf)
+
+    for conf in config.get(CONF_ON_PD_NEGOTIATION_FAILURE, []):
+        trigger = cg.new_Pvariable(conf[CONF_ID], var.get_pd_negotiation_failure_trigger())
+        await automation.build_automation(trigger, [], conf)

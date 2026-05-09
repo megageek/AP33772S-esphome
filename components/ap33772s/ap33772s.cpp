@@ -38,6 +38,8 @@ static constexpr uint8_t AP33772S_REG_OCPTHR = 0x19;
 static constexpr uint8_t AP33772S_REG_OTPTHR = 0x1A;
 static constexpr uint8_t AP33772S_REG_DRTHR = 0x1B;
 static constexpr uint8_t AP33772S_REG_SRCPDO = 0x20;
+static constexpr uint8_t AP33772S_REG_PD_REQMSG = 0x31;
+static constexpr uint8_t AP33772S_REG_PD_MSGRLT = 0x33;
 
 static const char *const SPR_VOLTAGE_MIN[] = {"Reserved", "3300mV~",
                                                "3300mV < VOLTAGE_MIN \xe2\x89\xa4 5000mV", "others"};
@@ -151,6 +153,165 @@ const char *AP33772SComponent::current_range_str_(uint8_t val) const {
       return "5.00A ~";
     default:
       return "Invalid";
+  }
+}
+
+float AP33772SComponent::pdo_voltage_(int idx) const {
+  bool is_epr = (idx >= 7);
+  float step = is_epr ? 0.2f : 0.1f;
+  return (this->pdos_[idx].raw & 0xFF) * step;
+}
+
+float AP33772SComponent::pdo_min_voltage_(int idx) const {
+  if (this->pdo_is_fixed_(idx))
+    return this->pdo_voltage_(idx);
+
+  uint8_t vmin = (this->pdos_[idx].raw >> 8) & 0x03;
+  if (idx >= 7) {
+    if (vmin == 1) return 15.0f;
+    if (vmin == 2) return 15.0f;
+    return 0.0f;
+  }
+  if (vmin == 1) return 3.3f;
+  if (vmin == 2) return 3.3f;
+  return 0.0f;
+}
+
+float AP33772SComponent::pdo_max_current_(int idx) const {
+  uint8_t val = (this->pdos_[idx].raw >> 10) & 0x0F;
+  if (val == 0) return 1.25f;
+  if (val == 15) return 5.0f;
+  return 1.25f + 0.25f * val;
+}
+
+bool AP33772SComponent::pdo_is_fixed_(int idx) const {
+  return ((this->pdos_[idx].raw >> 14) & 1) == 0;
+}
+
+bool AP33772SComponent::pdo_is_detected_(int idx) const {
+  return ((this->pdos_[idx].raw >> 15) & 1) != 0;
+}
+
+void AP33772SComponent::write_pd_reqmsg_(uint8_t pdo_index, uint8_t voltage_sel, uint8_t current_sel) {
+  uint8_t data[2] = {voltage_sel, static_cast<uint8_t>((pdo_index << 4) | current_sel)};
+  if (!this->write_bytes(AP33772S_REG_PD_REQMSG, data, 2)) {
+    ESP_LOGE(TAG, "Failed to write PD_REQMSG");
+    this->request_sent_ = false;
+  }
+}
+
+void AP33772SComponent::request_power_profiles_() {
+  if (this->target_profiles_.empty()) {
+    ESP_LOGCONFIG(TAG, "  No target power profiles configured");
+    return;
+  }
+
+  bool any_pdo = false;
+  for (int i = 0; i < 13; i++) {
+    if (this->pdo_is_detected_(i)) {
+      any_pdo = true;
+      break;
+    }
+  }
+
+  if (!any_pdo) {
+    ESP_LOGW(TAG, "  No PDOs detected yet, cannot request power profile");
+    return;
+  }
+
+  for (const auto &profile : this->target_profiles_) {
+    for (int i = 0; i < 13; i++) {
+      if (!this->pdo_is_detected_(i))
+        continue;
+
+      float pdo_v = this->pdo_voltage_(i);
+      float step = (i >= 7) ? 0.2f : 0.1f;
+
+      bool voltage_match;
+      if (this->pdo_is_fixed_(i)) {
+        voltage_match = (pdo_v - profile.target_voltage) <= step &&
+                        (profile.target_voltage - pdo_v) <= step;
+      } else {
+        float min_v = this->pdo_min_voltage_(i);
+        voltage_match = profile.target_voltage >= min_v - 0.01f &&
+                        profile.target_voltage <= pdo_v + 0.01f;
+      }
+
+      if (!voltage_match)
+        continue;
+
+      if (profile.target_current >= 0.0f) {
+        if (this->pdo_max_current_(i) < profile.target_current - 0.01f)
+          continue;
+      }
+
+      bool is_fixed = this->pdo_is_fixed_(i);
+      bool is_epr = (i >= 7);
+
+      uint8_t voltage_sel;
+      if (is_fixed) {
+        voltage_sel = 0xFF;
+      } else if (is_epr) {
+        voltage_sel = static_cast<uint8_t>(profile.target_voltage / 0.2f);
+      } else {
+        voltage_sel = static_cast<uint8_t>(profile.target_voltage / 0.1f);
+      }
+
+      uint8_t current_sel = 0x0F;
+      if (this->request_current_limit_ && profile.target_current >= 0.0f) {
+        if (profile.target_current >= 5.0f) {
+          current_sel = 0x0F;
+        } else if (profile.target_current <= 1.0f) {
+          current_sel = 0x00;
+        } else {
+          current_sel = static_cast<uint8_t>((profile.target_current - 1.0f) * 3.75f + 0.5f);
+        }
+      }
+
+      ESP_LOGCONFIG(TAG, "  Requesting PDO%d (%s, %.1fV, cur_sel=%d, vol_sel=%d)", i + 1,
+                    is_fixed ? "Fixed" : (is_epr ? "AVS" : "PPS"), pdo_v, current_sel, voltage_sel);
+      this->write_pd_reqmsg_(i + 1, voltage_sel, current_sel);
+      this->request_sent_ = true;
+      return;
+    }
+  }
+
+  ESP_LOGW(TAG, "  No matching PDO found for any target profile");
+}
+
+void AP33772SComponent::loop() {
+  if (this->request_done_)
+    return;
+
+  if (this->first_loop_) {
+    this->first_loop_ = false;
+    if (!this->target_profiles_.empty() && !this->request_sent_) {
+      ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
+      this->pd_negotiation_failure_trigger_.trigger();
+      this->request_done_ = true;
+      return;
+    }
+  }
+
+  if (!this->request_sent_)
+    return;
+
+  if (this->msgrlt_retries_ > 50) {
+    ESP_LOGW(TAG, "  Power profile request timed out");
+    this->pd_negotiation_failure_trigger_.trigger();
+    this->request_done_ = true;
+    return;
+  }
+  this->msgrlt_retries_++;
+
+  uint8_t msgrlt;
+  if (!this->read_register_(AP33772S_REG_PD_MSGRLT, &msgrlt))
+    return;
+
+  if (msgrlt & 0x01) {
+    ESP_LOGCONFIG(TAG, "  Power profile request accepted (PD_MSGRLT=0x%02X)", msgrlt);
+    this->pd_negotiation_success_trigger_.trigger();
+    this->request_done_ = true;
   }
 }
 
@@ -296,6 +457,7 @@ void AP33772SComponent::setup() {
                 this->derating_threshold_user_);
 
   this->read_pdos_();
+  this->request_power_profiles_();
 }
 
 void AP33772SComponent::dump_config() {
@@ -326,6 +488,17 @@ void AP33772SComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Source capabilities:");
   for (int i = 0; i < 13; i++) {
     this->log_pdo_(i);
+  }
+  ESP_LOGCONFIG(TAG, "  Request current limit: %s", YESNO(this->request_current_limit_));
+  if (!this->target_profiles_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Target profiles:");
+    for (const auto &profile : this->target_profiles_) {
+      if (profile.target_current >= 0.0f) {
+        ESP_LOGCONFIG(TAG, "    %.1fV %.2fA", profile.target_voltage, profile.target_current);
+      } else {
+        ESP_LOGCONFIG(TAG, "    %.1fV", profile.target_voltage);
+      }
+    }
   }
 }
 

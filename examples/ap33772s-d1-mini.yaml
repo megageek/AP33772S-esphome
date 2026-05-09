@@ -32,6 +32,10 @@ i2c:
 ap33772s:
   id: ap33772s_hub
   address: 0x52
+  target_profiles:
+    - voltage: 20.0
+    - voltage: 12.0
+    - voltage: 5.0
 
 binary_sensor:
   - platform: ap33772s
