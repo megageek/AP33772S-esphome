@@ -84,6 +84,13 @@ This file distills the information needed to implement and test the ESPHome comp
 
 ## Configuration and Protection
 
+`SYSTEM` (`0x06`) bits:
+
+| Bit | Name | Meaning |
+| ---: | --- | --- |
+| 4 | — | Set by default (0x10); function unknown |
+| 2:1 | `VOUTCTL` | VOUT control: `00` = normal, `01` = discharge, `10` = disable, `11` = reserved |
+
 `CONFIG` (`0x04`) enables protection features:
 
 | Bit | Name | Meaning |

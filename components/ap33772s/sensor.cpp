@@ -10,6 +10,8 @@ static const char *const TAG = "ap33772s.sensor";
 static constexpr uint8_t AP33772S_REG_VOLTAGE = 0x11;
 static constexpr uint8_t AP33772S_REG_CURRENT = 0x12;
 static constexpr uint8_t AP33772S_REG_TEMP = 0x13;
+static constexpr uint8_t AP33772S_REG_VREQ = 0x14;
+static constexpr uint8_t AP33772S_REG_IREQ = 0x15;
 
 void AP33772SSensorComponent::setup() {
   this->update();
@@ -32,6 +34,12 @@ void AP33772SSensorComponent::update() {
   if (this->temperature_sensor_ != nullptr) {
     success &= this->publish_temperature_();
   }
+  if (this->voltage_requested_sensor_ != nullptr) {
+    success &= this->publish_voltage_requested_();
+  }
+  if (this->current_requested_sensor_ != nullptr) {
+    success &= this->publish_current_requested_();
+  }
 
   if (success) {
     this->status_clear_warning();
@@ -46,6 +54,8 @@ void AP33772SSensorComponent::dump_config() {
   LOG_SENSOR("  ", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("  ", "Current", this->current_sensor_);
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
+  LOG_SENSOR("  ", "Requested Voltage", this->voltage_requested_sensor_);
+  LOG_SENSOR("  ", "Requested Current", this->current_requested_sensor_);
 }
 
 bool AP33772SSensorComponent::publish_voltage_() {
@@ -80,6 +90,30 @@ bool AP33772SSensorComponent::publish_temperature_() {
 
   ESP_LOGD(TAG, "Temperature raw=%u → %u °C", raw, raw);
   this->temperature_sensor_->publish_state(static_cast<float>(raw));
+  return true;
+}
+
+bool AP33772SSensorComponent::publish_voltage_requested_() {
+  uint16_t raw;
+  if (!this->parent_->read_u16_le(AP33772S_REG_VREQ, &raw)) {
+    return false;
+  }
+
+  float voltage = static_cast<float>(raw) * 0.050f;
+  ESP_LOGD(TAG, "Requested voltage raw=%u → %.2f V", raw, voltage);
+  this->voltage_requested_sensor_->publish_state(voltage);
+  return true;
+}
+
+bool AP33772SSensorComponent::publish_current_requested_() {
+  uint16_t raw;
+  if (!this->parent_->read_u16_le(AP33772S_REG_IREQ, &raw)) {
+    return false;
+  }
+
+  float current = static_cast<float>(raw) * 0.010f;
+  ESP_LOGD(TAG, "Requested current raw=%u → %.3f A", raw, current);
+  this->current_requested_sensor_->publish_state(current);
   return true;
 }
 

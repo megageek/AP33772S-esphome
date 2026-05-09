@@ -24,6 +24,12 @@ ap33772s:
   id: ap33772s_hub
   address: 0x52
 
+binary_sensor:
+  - platform: ap33772s
+    ap33772s_id: ap33772s_hub
+    pd_connected:
+      name: "AP33772S PD Connected"
+
 sensor:
   - platform: ap33772s
     ap33772s_id: ap33772s_hub
@@ -33,3 +39,7 @@ sensor:
       name: "AP33772S Current"
     temperature:
       name: "AP33772S Temperature"
+    voltage_requested:
+      name: "AP33772S Requested Voltage"
+    current_requested:
+      name: "AP33772S Requested Current"

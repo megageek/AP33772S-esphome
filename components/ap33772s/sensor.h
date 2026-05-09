@@ -17,16 +17,22 @@ class AP33772SSensorComponent : public PollingComponent {
   void set_voltage_sensor(sensor::Sensor *voltage_sensor) { this->voltage_sensor_ = voltage_sensor; }
   void set_current_sensor(sensor::Sensor *current_sensor) { this->current_sensor_ = current_sensor; }
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
+  void set_voltage_requested_sensor(sensor::Sensor *voltage_requested) { this->voltage_requested_sensor_ = voltage_requested; }
+  void set_current_requested_sensor(sensor::Sensor *current_requested) { this->current_requested_sensor_ = current_requested; }
 
  protected:
   bool publish_voltage_();
   bool publish_current_();
   bool publish_temperature_();
+  bool publish_voltage_requested_();
+  bool publish_current_requested_();
 
   AP33772SComponent *parent_{nullptr};
   sensor::Sensor *voltage_sensor_{nullptr};
   sensor::Sensor *current_sensor_{nullptr};
   sensor::Sensor *temperature_sensor_{nullptr};
+  sensor::Sensor *voltage_requested_sensor_{nullptr};
+  sensor::Sensor *current_requested_sensor_{nullptr};
 };
 
 }  // namespace ap33772s

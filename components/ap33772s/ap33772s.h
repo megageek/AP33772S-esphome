@@ -6,6 +6,31 @@
 namespace esphome {
 namespace ap33772s {
 
+union PDOData {
+  uint16_t raw;
+  struct {
+    uint8_t voltage_max : 8;
+    uint8_t peak_current : 2;
+    uint8_t current_max : 4;
+    uint8_t type : 1;
+    uint8_t detect : 1;
+  } fixed;
+  struct {
+    uint8_t voltage_max : 8;
+    uint8_t voltage_min : 2;
+    uint8_t current_max : 4;
+    uint8_t type : 1;
+    uint8_t detect : 1;
+  } pps;
+  struct {
+    uint8_t voltage_max : 8;
+    uint8_t voltage_min : 2;
+    uint8_t current_max : 4;
+    uint8_t type : 1;
+    uint8_t detect : 1;
+  } avs;
+};
+
 class AP33772SComponent : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
@@ -31,12 +56,16 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);
   bool write_register_(uint8_t reg, uint8_t value);
+  void read_pdos_();
+  void log_pdo_(int idx);
+  const char *current_range_str_(uint8_t val) const;
 
   bool detected_{false};
   uint8_t status_{0};
   uint8_t opmode_{0};
   uint8_t config_{0};
   uint8_t pdconfig_{0};
+  PDOData pdos_[13];
 
   uint8_t config_user_{0xF8};
   uint8_t pdconfig_user_{0x03};

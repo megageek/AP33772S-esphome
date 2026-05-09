@@ -37,6 +37,12 @@ static constexpr uint8_t AP33772S_REG_OVPTHR = 0x18;
 static constexpr uint8_t AP33772S_REG_OCPTHR = 0x19;
 static constexpr uint8_t AP33772S_REG_OTPTHR = 0x1A;
 static constexpr uint8_t AP33772S_REG_DRTHR = 0x1B;
+static constexpr uint8_t AP33772S_REG_SRCPDO = 0x20;
+
+static const char *const SPR_VOLTAGE_MIN[] = {"Reserved", "3300mV~",
+                                               "3300mV < VOLTAGE_MIN \xe2\x89\xa4 5000mV", "others"};
+static const char *const EPR_VOLTAGE_MIN[] = {"Reserved", "15000mV~",
+                                               "15000mV < VOLTAGE_MIN \xe2\x89\xa4 20000mV", "others"};
 
 bool AP33772SComponent::read_register_(uint8_t reg, uint8_t *value) {
   if (this->read_byte(reg, value)) {
@@ -69,6 +75,83 @@ bool AP33772SComponent::read_u16_le(uint8_t reg, uint16_t *value) {
 
   *value = static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
   return true;
+}
+
+void AP33772SComponent::read_pdos_() {
+  uint8_t buf[26];
+  if (!this->read_bytes(AP33772S_REG_SRCPDO, buf, 26)) {
+    ESP_LOGE(TAG, "Failed to read source PDOs");
+    return;
+  }
+  for (int i = 0; i < 13; i++) {
+    this->pdos_[i].raw = static_cast<uint16_t>(buf[2 * i]) |
+                         (static_cast<uint16_t>(buf[2 * i + 1]) << 8);
+  }
+  ESP_LOGCONFIG(TAG, "  Source capabilities:");
+  for (int i = 0; i < 13; i++) {
+    this->log_pdo_(i);
+  }
+}
+
+void AP33772SComponent::log_pdo_(int idx) {
+  PDOData pdo = this->pdos_[idx];
+  if (pdo.raw == 0)
+    return;
+
+  bool is_epr = (idx >= 7);
+  const char *prefix = is_epr ? "EPR" : "SPR";
+
+  if (pdo.fixed.type == 0) {
+    uint16_t mv = pdo.fixed.voltage_max * (is_epr ? 200 : 100);
+    ESP_LOGCONFIG(TAG, "    PDO%d (%s): Fixed PDO: %dmV, current=%s", idx + 1, prefix, mv,
+                  this->current_range_str_(pdo.fixed.current_max));
+  } else {
+    uint16_t mv = pdo.avs.voltage_max * (is_epr ? 200 : 100);
+    const char *min_str = is_epr ? EPR_VOLTAGE_MIN[pdo.avs.voltage_min & 0x03]
+                                 : SPR_VOLTAGE_MIN[pdo.pps.voltage_min & 0x03];
+    const char *type_str = is_epr ? "AVS" : "PPS";
+    ESP_LOGCONFIG(TAG, "    PDO%d (%s): %s PDO: min=%s, max=%dmV, current=%s", idx + 1, prefix, type_str,
+                  min_str, mv, this->current_range_str_(pdo.avs.current_max));
+  }
+}
+
+const char *AP33772SComponent::current_range_str_(uint8_t val) const {
+  switch (val) {
+    case 0:
+      return "0.00A ~ 1.24A";
+    case 1:
+      return "1.25A ~ 1.49A";
+    case 2:
+      return "1.50A ~ 1.74A";
+    case 3:
+      return "1.75A ~ 1.99A";
+    case 4:
+      return "2.00A ~ 2.24A";
+    case 5:
+      return "2.25A ~ 2.49A";
+    case 6:
+      return "2.50A ~ 2.74A";
+    case 7:
+      return "2.75A ~ 2.99A";
+    case 8:
+      return "3.00A ~ 3.24A";
+    case 9:
+      return "3.25A ~ 3.49A";
+    case 10:
+      return "3.50A ~ 3.74A";
+    case 11:
+      return "3.75A ~ 3.99A";
+    case 12:
+      return "4.00A ~ 4.24A";
+    case 13:
+      return "4.25A ~ 4.49A";
+    case 14:
+      return "4.50A ~ 4.99A";
+    case 15:
+      return "5.00A ~";
+    default:
+      return "Invalid";
+  }
 }
 
 void AP33772SComponent::set_epr_mode(bool x) {
@@ -211,6 +294,8 @@ void AP33772SComponent::setup() {
                 ocp_threshold_str(this->ocp_threshold_user_),
                 this->otp_threshold_user_,
                 this->derating_threshold_user_);
+
+  this->read_pdos_();
 }
 
 void AP33772SComponent::dump_config() {
@@ -238,6 +323,10 @@ void AP33772SComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  OCP threshold: %s", ocp_threshold_str(this->ocp_threshold_user_));
   ESP_LOGCONFIG(TAG, "  OTP threshold: %d °C", this->otp_threshold_user_);
   ESP_LOGCONFIG(TAG, "  Derating threshold: %d °C", this->derating_threshold_user_);
+  ESP_LOGCONFIG(TAG, "  Source capabilities:");
+  for (int i = 0; i < 13; i++) {
+    this->log_pdo_(i);
+  }
 }
 
 }  // namespace ap33772s

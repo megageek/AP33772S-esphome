@@ -6,3 +6,4 @@
 __pycache__/
 *.py[cod]
 secrets.yaml
+documents/AP33772s.py
