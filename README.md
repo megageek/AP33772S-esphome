@@ -17,9 +17,7 @@ The chip uses fixed I2C address `0x52`. Both SDA and SCL require external pull-u
 
 ```yaml
 external_components:
-  - source:
-      type: local
-      path: components
+  - source: github://megageek/AP33772S-esphome
     components: [ap33772s]
 
 i2c:
