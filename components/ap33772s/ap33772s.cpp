@@ -192,6 +192,28 @@ bool AP33772SComponent::pdo_is_detected_(int idx) const {
   return ((this->pdos_[idx].raw >> 15) & 1) != 0;
 }
 
+uint8_t AP33772SComponent::get_pdo_count() const {
+  uint8_t count = 0;
+  for (int i = 0; i < 13; i++) {
+    if (this->pdo_is_detected_(i))
+      count++;
+  }
+  return count;
+}
+
+PDOInfo AP33772SComponent::get_pdo(uint8_t index) const {
+  PDOInfo info{};
+  info.index = index + 1;
+  info.is_detected = this->pdo_is_detected_(index);
+  if (!info.is_detected)
+    return info;
+  info.voltage = this->pdo_voltage_(index);
+  info.min_voltage = this->pdo_min_voltage_(index);
+  info.max_current = this->pdo_max_current_(index);
+  info.is_fixed = this->pdo_is_fixed_(index);
+  return info;
+}
+
 void AP33772SComponent::write_pd_reqmsg_(uint8_t pdo_index, uint8_t voltage_sel, uint8_t current_sel) {
   uint8_t data[2] = {voltage_sel, static_cast<uint8_t>((pdo_index << 4) | current_sel)};
   if (!this->write_bytes(AP33772S_REG_PD_REQMSG, data, 2)) {

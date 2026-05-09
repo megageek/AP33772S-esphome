@@ -39,6 +39,15 @@ struct PowerProfile {
   float target_current;  // -1.0 means "no current requirement"
 };
 
+struct PDOInfo {
+  uint8_t index;
+  float voltage;
+  float min_voltage;
+  float max_current;
+  bool is_fixed;
+  bool is_detected;
+};
+
 class AP33772SComponent : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
@@ -67,6 +76,8 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
   bool request_power_profile(float voltage, float current);
+  uint8_t get_pdo_count() const;
+  PDOInfo get_pdo(uint8_t index) const;
 
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);
