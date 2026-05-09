@@ -1,0 +1,24 @@
+esphome:
+  name: ap33772s-d1-mini
+  friendly_name: AP33772S D1 Mini
+
+esp8266:
+  board: d1_mini
+
+logger:
+  deassert_rts_dtr: true
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [ap33772s]
+
+i2c:
+  sda: GPIO4
+  scl: GPIO5
+  scan: true
+
+ap33772s:
+  id: ap33772s_hub
+  address: 0x52

@@ -17,15 +17,15 @@ Initial component files are `__init__.py`, `ap33772s.h`, and `ap33772s.cpp`. Add
 
 ## Build, Test, and Development Commands
 
-No project-specific scripts are committed yet. Until they exist, validate with explicit ESPHome commands:
-
 ```bash
-esphome config examples/<device>.yaml
-esphome compile examples/<device>.yaml
-esphome run examples/<device>.yaml
+make config
+make compile
+make compile-d1-mini
+make hardware-run DEVICE=/dev/ttyUSB0
+make hardware-logs DEVICE=/dev/ttyUSB0
 ```
 
-`esphome config` validates YAML and schemas. `esphome compile` verifies firmware generation and C++ integration. `esphome run` uploads and streams AP33772S hardware logs.
+`make config` validates YAML and schemas for all examples. `make compile` verifies firmware generation and C++ integration. `make hardware-run` uploads to the D1 mini and streams AP33772S hardware logs.
 
 ## Coding Style & Naming Conventions
 
@@ -35,11 +35,11 @@ For Python config code, follow ESPHome patterns: `CONFIG_SCHEMA`, `to_code`, exp
 
 ## Testing Guidelines
 
-Validate every example with `esphome config` before opening a pull request. For component changes, also run `esphome compile` against one representative example. When hardware is available, run `esphome run` and capture relevant logs. Add fixtures under `tests/` for schemas, generated configuration, register parsing, or hardware edge cases.
+Validate every example with `make config` before opening a pull request. For component changes, also run `make compile` or at least `make compile-d1-mini`. When hardware is available, run `make hardware-run DEVICE=/dev/ttyUSB0` and capture relevant logs. Add fixtures under `tests/` for schemas, generated configuration, register parsing, or hardware edge cases.
 
 ## Commit & Pull Request Guidelines
 
-This repository has no commit history yet, so use clear, imperative messages such as `Add AP33772S sensor platform`. Keep each commit focused on one behavior, register feature, example, or documentation change.
+Use clear, imperative messages such as `Add AP33772S sensor platform`. Keep each commit focused on one behavior, register feature, example, or documentation change.
 
 Pull requests should include a summary, ESPHome domains changed, validation commands run, and any AP33772S hardware used for testing. Include logs only when they clarify values, I2C behavior, or failures.
 

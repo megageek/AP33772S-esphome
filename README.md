@@ -27,13 +27,29 @@ The AP33772S uses fixed I2C address `0x52`.
 
 ## Development
 
-Validate the example configuration from the repository root:
+Validate and compile all example configurations from the repository root:
 
 ```bash
-.venv/bin/esphome config examples/ap33772s-component.yaml
-UV_CACHE_DIR=/tmp/ap33772s-uv-cache \
-PLATFORMIO_CORE_DIR="$PWD/.platformio" \
-  .venv/bin/esphome compile examples/ap33772s-component.yaml
+make config
+make compile
 ```
 
-Use `esphome run examples/ap33772s-component.yaml` only when AP33772S hardware is connected and the example pin assignments match the target board.
+The Makefile keeps ESPHome and PlatformIO state local to this workspace by default:
+
+```bash
+ESPHOME=.venv/bin/esphome
+PLATFORMIO_CORE_DIR="$PWD/.platformio"
+UV_CACHE_DIR=/tmp/ap33772s-uv-cache
+```
+
+## Hardware Testing
+
+The D1 mini hardware test uses ESP8266 board `d1_mini`, SDA on `GPIO4`, SCL on `GPIO5`, and AP33772S address `0x52`.
+
+```bash
+make compile-d1-mini
+make hardware-run DEVICE=/dev/ttyUSB0
+make hardware-logs DEVICE=/dev/ttyUSB0
+```
+
+`hardware-run` uploads the firmware, resets before attaching logs, and should show the I2C scan finding `0x52`. Use it only when the D1 mini and AP33772S wiring match `examples/ap33772s-d1-mini.yaml`.
