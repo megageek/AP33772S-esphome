@@ -35,11 +35,11 @@ For Python config code, follow ESPHome patterns: `CONFIG_SCHEMA`, `to_code`, exp
 
 ## Testing Guidelines
 
-Validate every example with `make config` before opening a pull request. For component changes, also run `make compile` or at least `make compile-d1-mini`. When hardware is available, run `make hardware-run DEVICE=/dev/ttyUSB0` and capture relevant logs. Add fixtures under `tests/` for schemas, generated configuration, register parsing, or hardware edge cases.
+After every repository change, run the narrowest relevant test plus `make config` before committing. For component changes, also run `make compile` or at least `make compile-d1-mini`. When hardware is available, run `make hardware-run DEVICE=/dev/ttyUSB0` and capture relevant logs. Add fixtures under `tests/` for schemas, generated configuration, register parsing, or hardware edge cases.
 
 ## Commit & Pull Request Guidelines
 
-Use clear, imperative messages such as `Add AP33772S sensor platform`. Keep each commit focused on one behavior, register feature, example, or documentation change.
+Commit every completed repository change after tests pass. Use clear, imperative messages such as `Add AP33772S sensor platform`. Keep each commit focused on one behavior, register feature, example, or documentation change.
 
 Pull requests should include a summary, ESPHome domains changed, validation commands run, and any AP33772S hardware used for testing. Include logs only when they clarify values, I2C behavior, or failures.
 
@@ -49,4 +49,4 @@ Document I2C address, wiring assumptions, supported sensors, and register limita
 
 ## Agent-Specific Instructions
 
-Do not invent generated files, register behavior, datasheet claims, build outputs, or hardware test results. When adding AP33772S features, keep examples and validation notes synchronized with the implemented component behavior.
+Do not invent generated files, register behavior, datasheet claims, build outputs, or hardware test results. After editing, run the required tests, report the results, and commit the change unless the user explicitly asks not to. When adding AP33772S features, keep examples and validation notes synchronized with the implemented component behavior.
