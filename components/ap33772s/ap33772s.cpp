@@ -39,6 +39,7 @@ static constexpr uint8_t AP33772S_REG_OTPTHR = 0x1A;
 static constexpr uint8_t AP33772S_REG_DRTHR = 0x1B;
 static constexpr uint8_t AP33772S_REG_SRCPDO = 0x20;
 static constexpr uint8_t AP33772S_REG_PD_REQMSG = 0x31;
+static constexpr uint8_t AP33772S_REG_PD_CMDMSG = 0x32;
 static constexpr uint8_t AP33772S_REG_PD_MSGRLT = 0x33;
 
 static const char *const SPR_VOLTAGE_MIN[] = {"Reserved", "3300mV~",
@@ -323,6 +324,15 @@ void AP33772SComponent::send_keep_alive_() {
   if (!this->write_bytes(AP33772S_REG_PD_REQMSG, data, 2)) {
     ESP_LOGW(TAG, "  Keep-alive: failed to write PD_REQMSG");
   }
+}
+
+void AP33772SComponent::hard_reset() {
+  ESP_LOGCONFIG(TAG, "  Issuing hard reset");
+  if (!this->write_register_(AP33772S_REG_PD_CMDMSG, 0x01)) {
+    ESP_LOGE(TAG, "  Failed to write PD_CMDMSG for hard reset");
+  }
+  this->request_sent_ = false;
+  this->request_done_ = true;
 }
 
 void AP33772SComponent::loop() {

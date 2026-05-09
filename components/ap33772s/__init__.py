@@ -26,6 +26,7 @@ CONF_ON_PD_NEGOTIATION_SUCCESS = "on_pd_negotiation_success"
 CONF_ON_PD_NEGOTIATION_FAILURE = "on_pd_negotiation_failure"
 CONF_ON_NEW_PDO = "on_new_pdo"
 CONF_KEEP_ALIVE_INTERVAL = "keep_alive_interval"
+CONF_HARD_RESET = "hard_reset"
 _CONF_PROFILE_VOLTAGE = "voltage"
 _CONF_PROFILE_CURRENT = "current"
 
@@ -161,3 +162,23 @@ async def request_power_profile_action_to_code(config, action_id, template_arg, 
         template_ = await cg.templatable(config[CONF_CURRENT], args, cg.float_)
         cg.add(var.set_current(template_))
     return var
+
+
+HardResetAction = ap33772s_ns.class_("HardResetAction", automation.Action)
+
+HARD_RESET_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(AP33772SComponent),
+    }
+)
+
+
+@automation.register_action(
+    CONF_HARD_RESET,
+    HardResetAction,
+    HARD_RESET_SCHEMA,
+    synchronous=True,
+)
+async def hard_reset_action_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)

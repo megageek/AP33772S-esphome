@@ -37,6 +37,8 @@ ap33772s:
     - logger.log: "PD negotiation succeeded!"
   on_pd_negotiation_failure:
     - logger.log: "PD negotiation failed"
+  on_new_pdo:
+    - logger.log: "New source capabilities detected"
 
 binary_sensor:
   - platform: ap33772s

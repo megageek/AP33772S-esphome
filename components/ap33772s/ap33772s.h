@@ -77,6 +77,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
   Trigger<> *get_on_new_pdo_trigger() { return &this->on_new_pdo_trigger_; }
   bool request_power_profile(float voltage, float current);
+  void hard_reset();
   uint8_t get_pdo_count() const;
   PDOInfo get_pdo(uint8_t index) const;
   uint8_t get_latched_faults() const { return this->latched_faults_; }
@@ -141,6 +142,15 @@ template<typename... Ts> class PowerProfileRequestAction : public Action<Ts...> 
     auto current = this->current_.value_or(x..., -1.0f);
     this->parent_->request_power_profile(voltage, current);
   }
+
+ protected:
+  AP33772SComponent *parent_;
+};
+
+template<typename... Ts> class HardResetAction : public Action<Ts...> {
+ public:
+  HardResetAction(AP33772SComponent *parent) : parent_(parent) {}
+  void play(const Ts &...x) { this->parent_->hard_reset(); }
 
  protected:
   AP33772SComponent *parent_;
