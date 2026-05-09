@@ -11,7 +11,7 @@ An ESPHome external component for the [Diodes AP33772S](https://www.diodes.com/p
 | VCC | 3.3V | 3.3V |
 | GND | GND | GND |
 
-The chip uses fixed I2C address `0x52`. Both SDA and SCL require external pull-up resistors (4.7kΩ typical).
+The pins above are examples. Any free GPIO can be used for the I2C bus — configure them in your `i2c:` block. The chip uses fixed I2C address `0x52`. Both SDA and SCL require external pull-up resistors (4.7kΩ typical).
 
 ## Quick Start
 
