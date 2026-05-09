@@ -9,6 +9,7 @@ namespace ap33772s {
 
 class AP33772SSensorComponent : public PollingComponent {
  public:
+  void setup() override;
   void update() override;
   void dump_config() override;
 

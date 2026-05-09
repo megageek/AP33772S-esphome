@@ -11,6 +11,10 @@ static constexpr uint8_t AP33772S_REG_VOLTAGE = 0x11;
 static constexpr uint8_t AP33772S_REG_CURRENT = 0x12;
 static constexpr uint8_t AP33772S_REG_TEMP = 0x13;
 
+void AP33772SSensorComponent::setup() {
+  this->update();
+}
+
 void AP33772SSensorComponent::update() {
   if (this->parent_ == nullptr || this->parent_->is_failed()) {
     ESP_LOGW(TAG, "AP33772S hub is not ready");
@@ -50,7 +54,9 @@ bool AP33772SSensorComponent::publish_voltage_() {
     return false;
   }
 
-  this->voltage_sensor_->publish_state(static_cast<float>(raw) * 0.080f);
+  float voltage = static_cast<float>(raw) * 0.080f;
+  ESP_LOGD(TAG, "Voltage raw=%u → %.2f V", raw, voltage);
+  this->voltage_sensor_->publish_state(voltage);
   return true;
 }
 
@@ -60,7 +66,9 @@ bool AP33772SSensorComponent::publish_current_() {
     return false;
   }
 
-  this->current_sensor_->publish_state(static_cast<float>(raw) * 0.024f);
+  float current = static_cast<float>(raw) * 0.024f;
+  ESP_LOGD(TAG, "Current raw=%u → %.3f A", raw, current);
+  this->current_sensor_->publish_state(current);
   return true;
 }
 
@@ -70,6 +78,7 @@ bool AP33772SSensorComponent::publish_temperature_() {
     return false;
   }
 
+  ESP_LOGD(TAG, "Temperature raw=%u → %u °C", raw, raw);
   this->temperature_sensor_->publish_state(static_cast<float>(raw));
   return true;
 }

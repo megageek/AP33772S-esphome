@@ -50,6 +50,35 @@ void AP33772SComponent::setup() {
   ESP_LOGCONFIG(TAG, "AP33772S responded: STATUS=0x%02X, OPMODE=0x%02X, CONFIG=0x%02X, PDCONFIG=0x%02X",
                 this->status_, this->opmode_, this->config_, this->pdconfig_);
 
+  ESP_LOGCONFIG(TAG, "  STATUS:");
+  ESP_LOGCONFIG(TAG, "    Protection: OTP=%s OCP=%s OVP=%s UVP=%s",
+                (this->status_ & 0x40) ? "FAULT" : "OK",
+                (this->status_ & 0x20) ? "FAULT" : "OK",
+                (this->status_ & 0x10) ? "FAULT" : "OK",
+                (this->status_ & 0x08) ? "FAULT" : "OK");
+  ESP_LOGCONFIG(TAG, "    NEWPDO=%s READY=%s STARTED=%s",
+                (this->status_ & 0x04) ? "YES" : "NO",
+                (this->status_ & 0x02) ? "YES" : "NO",
+                (this->status_ & 0x01) ? "YES" : "NO");
+  ESP_LOGCONFIG(TAG, "  OPMODE:");
+  ESP_LOGCONFIG(TAG, "    CC: %s", (this->opmode_ & 0x80) ? "CC2" : "CC1");
+  ESP_LOGCONFIG(TAG, "    De-rating: %s", (this->opmode_ & 0x40) ? "Active" : "Inactive");
+  ESP_LOGCONFIG(TAG, "    Data Role: %s", (this->opmode_ & 0x20) ? "DFP" : "UFP");
+  ESP_LOGCONFIG(TAG, "    PD Mode: %s", (this->opmode_ & 0x02) ? "Connected" : "Not connected");
+  ESP_LOGCONFIG(TAG, "    Legacy Mode: %s", (this->opmode_ & 0x01) ? "Active" : "Inactive");
+  ESP_LOGCONFIG(TAG, "  CONFIG protections enabled:");
+  ESP_LOGCONFIG(TAG, "    De-rating=%s OTP=%s OCP=%s OVP=%s UVP=%s",
+                (this->config_ & 0x80) ? "YES" : "NO",
+                (this->config_ & 0x40) ? "YES" : "NO",
+                (this->config_ & 0x20) ? "YES" : "NO",
+                (this->config_ & 0x10) ? "YES" : "NO",
+                (this->config_ & 0x08) ? "YES" : "NO");
+  ESP_LOGCONFIG(TAG, "  PDCONFIG:");
+  ESP_LOGCONFIG(TAG, "    EPR Mode=%s PPS/AVS=%s DR Swap=%s",
+                (this->pdconfig_ & 0x01) ? "Enabled" : "Disabled",
+                (this->pdconfig_ & 0x02) ? "Enabled" : "Disabled",
+                (this->pdconfig_ & 0x04) ? "Enabled" : "Disabled");
+
   if ((this->status_ & 0x80) != 0) {
     ESP_LOGW(TAG, "STATUS reserved bit 7 is set; device response is unexpected");
     this->status_set_warning();
