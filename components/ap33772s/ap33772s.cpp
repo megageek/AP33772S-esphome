@@ -326,6 +326,13 @@ void AP33772SComponent::send_keep_alive_() {
 }
 
 void AP33772SComponent::loop() {
+  {
+    uint8_t status;
+    if (this->read_register_(AP33772S_REG_STATUS, &status)) {
+      this->latched_faults_ |= status & 0x78;
+    }
+  }
+
   if (this->request_done_) {
     if (this->keep_alive_interval_ms_ > 0 && this->last_pdo_index_ > 0) {
       uint32_t now = millis();
@@ -341,6 +348,7 @@ void AP33772SComponent::loop() {
     this->first_loop_ = false;
     if (this->use_default_5v_) {
       ESP_LOGCONFIG(TAG, "  Using default 5V, firing success trigger");
+      this->latched_faults_ = 0;
       this->pd_negotiation_success_trigger_.trigger();
       this->request_done_ = true;
       return;
@@ -370,6 +378,7 @@ void AP33772SComponent::loop() {
 
   if (msgrlt & 0x01) {
     ESP_LOGCONFIG(TAG, "  Power profile request accepted (PD_MSGRLT=0x%02X)", msgrlt);
+    this->latched_faults_ = 0;
     this->pd_negotiation_success_trigger_.trigger();
     this->request_done_ = true;
   }

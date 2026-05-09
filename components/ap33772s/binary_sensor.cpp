@@ -18,25 +18,57 @@ void AP33772SBinarySensorComponent::update() {
     return;
   }
 
-  if (this->pd_connected_ == nullptr)
-    return;
+  bool ok = true;
 
   uint8_t opmode;
-  if (!this->parent_->read_u8(AP33772S_REG_OPMODE, &opmode)) {
-    this->status_set_warning();
-    return;
+  if (this->pd_connected_ != nullptr || this->derating_ != nullptr) {
+    if (!this->parent_->read_u8(AP33772S_REG_OPMODE, &opmode)) {
+      ok = false;
+    }
   }
 
-  bool connected = (opmode & 0x02) != 0;
-  ESP_LOGD(TAG, "OPMODE raw=0x%02X → PD connected=%s", opmode, YESNO(connected));
-  this->pd_connected_->publish_state(connected);
-  this->status_clear_warning();
+  if (ok && this->pd_connected_ != nullptr) {
+    bool connected = (opmode & 0x02) != 0;
+    ESP_LOGD(TAG, "OPMODE raw=0x%02X → PD connected=%s", opmode, YESNO(connected));
+    this->pd_connected_->publish_state(connected);
+  }
+
+  if (ok && this->derating_ != nullptr) {
+    bool active = (opmode & 0x40) != 0;
+    ESP_LOGD(TAG, "OPMODE raw=0x%02X → Derating=%s", opmode, YESNO(active));
+    this->derating_->publish_state(active);
+  }
+
+  uint8_t faults = this->parent_->get_latched_faults();
+  if (this->fault_otp_ != nullptr) {
+    this->fault_otp_->publish_state((faults >> 6) & 1);
+  }
+  if (this->fault_ocp_ != nullptr) {
+    this->fault_ocp_->publish_state((faults >> 5) & 1);
+  }
+  if (this->fault_ovp_ != nullptr) {
+    this->fault_ovp_->publish_state((faults >> 4) & 1);
+  }
+  if (this->fault_uvp_ != nullptr) {
+    this->fault_uvp_->publish_state((faults >> 3) & 1);
+  }
+
+  if (ok) {
+    this->status_clear_warning();
+  } else {
+    this->status_set_warning();
+  }
 }
 
 void AP33772SBinarySensorComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "AP33772S Binary Sensors:");
   LOG_UPDATE_INTERVAL(this);
   LOG_BINARY_SENSOR("  ", "PD Connected", this->pd_connected_);
+  LOG_BINARY_SENSOR("  ", "Fault OTP", this->fault_otp_);
+  LOG_BINARY_SENSOR("  ", "Fault OCP", this->fault_ocp_);
+  LOG_BINARY_SENSOR("  ", "Fault OVP", this->fault_ovp_);
+  LOG_BINARY_SENSOR("  ", "Fault UVP", this->fault_uvp_);
+  LOG_BINARY_SENSOR("  ", "Derating", this->derating_);
 }
 
 }  // namespace ap33772s

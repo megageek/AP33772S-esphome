@@ -43,6 +43,16 @@ binary_sensor:
     ap33772s_id: ap33772s_hub
     pd_connected:
       name: "AP33772S PD Connected"
+    fault_otp:
+      name: "AP33772S OTP Fault"
+    fault_ocp:
+      name: "AP33772S OCP Fault"
+    fault_ovp:
+      name: "AP33772S OVP Fault"
+    fault_uvp:
+      name: "AP33772S UVP Fault"
+    derating:
+      name: "AP33772S Derating"
 
 sensor:
   - platform: ap33772s

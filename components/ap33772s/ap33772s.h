@@ -78,6 +78,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   bool request_power_profile(float voltage, float current);
   uint8_t get_pdo_count() const;
   PDOInfo get_pdo(uint8_t index) const;
+  uint8_t get_latched_faults() const { return this->latched_faults_; }
 
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);
@@ -113,6 +114,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   uint8_t last_current_sel_{0};
   uint32_t keep_alive_interval_ms_{1000};
   uint32_t last_keep_alive_millis_{0};
+  uint8_t latched_faults_{0};
   Trigger<> pd_negotiation_success_trigger_;
   Trigger<> pd_negotiation_failure_trigger_;
 
