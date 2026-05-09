@@ -1,6 +1,11 @@
 esphome:
   name: ap33772s-component-example
   friendly_name: AP33772S Component Example
+  on_boot:
+    then:
+      - delay: 5s
+      - request_power_profile:
+          voltage: 9.0
 
 esp32:
   board: esp32dev
@@ -53,8 +58,4 @@ sensor:
     current_requested:
       name: "AP33772S Requested Current"
 
-interval:
-  - interval: 5s
-    then:
-      - request_power_profile:
-          voltage: 9.0
+

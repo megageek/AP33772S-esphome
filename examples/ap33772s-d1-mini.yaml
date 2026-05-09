@@ -1,6 +1,11 @@
 esphome:
   name: ap33772s-d1-mini
   friendly_name: AP33772S D1 Mini
+  on_boot:
+    then:
+      - delay: 5s
+      - request_power_profile:
+          voltage: 9.0
 
 esp8266:
   board: d1_mini
@@ -62,8 +67,4 @@ sensor:
     current_requested:
       name: "AP33772S Requested Current"
 
-interval:
-  - interval: 5s
-    then:
-      - request_power_profile:
-          voltage: 9.0
+
