@@ -13,6 +13,23 @@ An ESPHome external component for the [Diodes AP33772S](https://www.diodes.com/p
 
 The pins above are examples. Any free GPIO can be used for the I2C bus — configure them in your `i2c:` block. The chip uses fixed I2C address `0x52`. Both SDA and SCL require external pull-up resistors (4.7kΩ typical).
 
+If you have multiple I2C buses, use `i2c_id` to select which one:
+
+```yaml
+i2c:
+  - id: bus_a
+    sda: GPIO21
+    scl: GPIO22
+  - id: bus_b
+    sda: GPIO19
+    scl: GPIO23
+
+ap33772s:
+  i2c_id: bus_a
+```
+
+When `i2c_id` is omitted, the component uses the first I2C bus.
+
 ## Quick Start
 
 ```yaml
@@ -57,6 +74,7 @@ See `examples/` for complete configurations for ESP32 and ESP8266 (D1 Mini).
 ap33772s:
   id: ap33772s_hub
   address: 0x52                       # default, can be omitted
+  i2c_id: bus_a                       # optional, uses first bus if omitted
   epr_mode: true                      # enable extended power range
   pps_avs: true                       # enable PPS and AVS
   dr_swap: false                      # accept data role swap
