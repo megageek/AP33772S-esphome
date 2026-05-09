@@ -10,6 +10,8 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
   void dump_config() override;
+  bool read_u8(uint8_t reg, uint8_t *value);
+  bool read_u16_le(uint8_t reg, uint16_t *value);
 
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);

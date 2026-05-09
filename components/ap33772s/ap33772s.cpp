@@ -21,6 +21,19 @@ bool AP33772SComponent::read_register_(uint8_t reg, uint8_t *value) {
   return false;
 }
 
+bool AP33772SComponent::read_u8(uint8_t reg, uint8_t *value) { return this->read_register_(reg, value); }
+
+bool AP33772SComponent::read_u16_le(uint8_t reg, uint16_t *value) {
+  uint8_t data[2];
+  if (!this->read_bytes(reg, data, 2)) {
+    ESP_LOGE(TAG, "Failed to read register 0x%02X from AP33772S at address 0x%02X", reg, this->get_i2c_address());
+    return false;
+  }
+
+  *value = static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
+  return true;
+}
+
 void AP33772SComponent::setup() {
   ESP_LOGCONFIG(TAG, "Probing AP33772S at address 0x%02X", this->get_i2c_address());
 

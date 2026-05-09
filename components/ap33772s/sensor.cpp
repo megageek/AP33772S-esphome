@@ -1,0 +1,78 @@
+#include "sensor.h"
+
+#include "esphome/core/log.h"
+
+namespace esphome {
+namespace ap33772s {
+
+static const char *const TAG = "ap33772s.sensor";
+
+static constexpr uint8_t AP33772S_REG_VOLTAGE = 0x11;
+static constexpr uint8_t AP33772S_REG_CURRENT = 0x12;
+static constexpr uint8_t AP33772S_REG_TEMP = 0x13;
+
+void AP33772SSensorComponent::update() {
+  if (this->parent_ == nullptr || this->parent_->is_failed()) {
+    ESP_LOGW(TAG, "AP33772S hub is not ready");
+    this->status_set_warning();
+    return;
+  }
+
+  bool success = true;
+  if (this->voltage_sensor_ != nullptr) {
+    success &= this->publish_voltage_();
+  }
+  if (this->current_sensor_ != nullptr) {
+    success &= this->publish_current_();
+  }
+  if (this->temperature_sensor_ != nullptr) {
+    success &= this->publish_temperature_();
+  }
+
+  if (success) {
+    this->status_clear_warning();
+  } else {
+    this->status_set_warning();
+  }
+}
+
+void AP33772SSensorComponent::dump_config() {
+  ESP_LOGCONFIG(TAG, "AP33772S Sensors:");
+  LOG_UPDATE_INTERVAL(this);
+  LOG_SENSOR("  ", "Voltage", this->voltage_sensor_);
+  LOG_SENSOR("  ", "Current", this->current_sensor_);
+  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
+}
+
+bool AP33772SSensorComponent::publish_voltage_() {
+  uint16_t raw;
+  if (!this->parent_->read_u16_le(AP33772S_REG_VOLTAGE, &raw)) {
+    return false;
+  }
+
+  this->voltage_sensor_->publish_state(static_cast<float>(raw) * 0.080f);
+  return true;
+}
+
+bool AP33772SSensorComponent::publish_current_() {
+  uint8_t raw;
+  if (!this->parent_->read_u8(AP33772S_REG_CURRENT, &raw)) {
+    return false;
+  }
+
+  this->current_sensor_->publish_state(static_cast<float>(raw) * 0.024f);
+  return true;
+}
+
+bool AP33772SSensorComponent::publish_temperature_() {
+  uint8_t raw;
+  if (!this->parent_->read_u8(AP33772S_REG_TEMP, &raw)) {
+    return false;
+  }
+
+  this->temperature_sensor_->publish_state(static_cast<float>(raw));
+  return true;
+}
+
+}  // namespace ap33772s
+}  // namespace esphome

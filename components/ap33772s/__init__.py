@@ -5,6 +5,8 @@ from esphome.const import CONF_ID
 
 DEPENDENCIES = ["i2c"]
 
+CONF_AP33772S_ID = "ap33772s_id"
+
 ap33772s_ns = cg.esphome_ns.namespace("ap33772s")
 AP33772SComponent = ap33772s_ns.class_(
     "AP33772SComponent", cg.Component, i2c.I2CDevice

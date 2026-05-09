@@ -22,3 +22,13 @@ i2c:
 ap33772s:
   id: ap33772s_hub
   address: 0x52
+
+sensor:
+  - platform: ap33772s
+    ap33772s_id: ap33772s_hub
+    voltage:
+      name: "AP33772S Voltage"
+    current:
+      name: "AP33772S Current"
+    temperature:
+      name: "AP33772S Temperature"

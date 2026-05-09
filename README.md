@@ -1,6 +1,6 @@
 # AP33772S ESPHome External Component
 
-This repository contains an ESPHome external component skeleton for the AP33772S chip. The current implementation registers a top-level `ap33772s` component on the I2C bus and does not expose sensors or read AP33772S registers yet.
+This repository contains an ESPHome external component for the AP33772S chip. The implementation registers a top-level `ap33772s` hub on the I2C bus, verifies the chip during setup, and exposes voltage, current, and temperature sensors.
 
 ## Usage
 
@@ -21,9 +21,19 @@ i2c:
 ap33772s:
   id: ap33772s_hub
   address: 0x52
+
+sensor:
+  - platform: ap33772s
+    ap33772s_id: ap33772s_hub
+    voltage:
+      name: "AP33772S Voltage"
+    current:
+      name: "AP33772S Current"
+    temperature:
+      name: "AP33772S Temperature"
 ```
 
-The AP33772S uses fixed I2C address `0x52`.
+The AP33772S uses fixed I2C address `0x52`. Sensor polling defaults to `10s` and can be overridden with `update_interval`.
 
 ## Reference Material
 
