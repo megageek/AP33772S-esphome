@@ -288,8 +288,6 @@ void AP33772SComponent::send_keep_alive_() {
   if (this->last_pdo_index_ == 0)
     return;
 
-  ESP_LOGD(TAG, "  Keep-alive: re-requesting PDO%d (vol_sel=%d, cur_sel=%d)",
-           this->last_pdo_index_, this->last_voltage_sel_, this->last_current_sel_);
   uint8_t data[2] = {this->last_voltage_sel_,
                      static_cast<uint8_t>((this->last_pdo_index_ << 4) | this->last_current_sel_)};
   if (!this->write_bytes(AP33772S_REG_PD_REQMSG, data, 2)) {
