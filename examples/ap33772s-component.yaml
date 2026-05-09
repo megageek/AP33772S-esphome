@@ -51,3 +51,9 @@ sensor:
       name: "AP33772S Requested Voltage"
     current_requested:
       name: "AP33772S Requested Current"
+
+interval:
+  - interval: 5s
+    then:
+      - request_power_profile:
+          voltage: 9.0
