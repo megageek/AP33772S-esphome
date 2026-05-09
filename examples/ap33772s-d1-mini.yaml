@@ -36,6 +36,7 @@ ap33772s:
     - voltage: 20.0
     - voltage: 12.0
     - voltage: 5.0
+  keep_alive_interval: 500ms
   on_pd_negotiation_success:
     - logger.log: "PD negotiation succeeded!"
   on_pd_negotiation_failure:

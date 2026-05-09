@@ -24,6 +24,7 @@ CONF_TARGET_PROFILES = "target_profiles"
 CONF_REQUEST_CURRENT_LIMIT = "request_current_limit"
 CONF_ON_PD_NEGOTIATION_SUCCESS = "on_pd_negotiation_success"
 CONF_ON_PD_NEGOTIATION_FAILURE = "on_pd_negotiation_failure"
+CONF_KEEP_ALIVE_INTERVAL = "keep_alive_interval"
 _CONF_PROFILE_VOLTAGE = "voltage"
 _CONF_PROFILE_CURRENT = "current"
 
@@ -82,6 +83,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_DR_THRESHOLD, default=120): cv.int_range(0, 255),
             cv.Optional(CONF_TARGET_PROFILES): cv.ensure_list(PROFILE_SCHEMA),
             cv.Optional(CONF_REQUEST_CURRENT_LIMIT, default=False): cv.boolean,
+            cv.Optional(CONF_KEEP_ALIVE_INTERVAL, default="1000ms"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(),
             cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(),
         }
@@ -110,6 +112,7 @@ async def to_code(config):
     cg.add(var.set_otp_threshold(config[CONF_OTP_THRESHOLD]))
     cg.add(var.set_derating_threshold(config[CONF_DR_THRESHOLD]))
     cg.add(var.set_request_current_limit(config[CONF_REQUEST_CURRENT_LIMIT]))
+    cg.add(var.set_keep_alive_interval(config[CONF_KEEP_ALIVE_INTERVAL]))
 
     if target_profiles := config.get(CONF_TARGET_PROFILES):
         for profile in target_profiles:

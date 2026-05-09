@@ -249,6 +249,9 @@ bool AP33772SComponent::request_power_profile(float voltage, float current) {
 
     ESP_LOGCONFIG(TAG, "  Requesting PDO%d (%s, %.1fV, cur_sel=%d, vol_sel=%d)", i + 1,
                   is_fixed ? "Fixed" : (is_epr ? "AVS" : "PPS"), pdo_v, current_sel, voltage_sel);
+    this->last_pdo_index_ = i + 1;
+    this->last_voltage_sel_ = voltage_sel;
+    this->last_current_sel_ = current_sel;
     this->write_pd_reqmsg_(i + 1, voltage_sel, current_sel);
     this->request_sent_ = true;
     this->msgrlt_retries_ = 0;
@@ -281,9 +284,30 @@ void AP33772SComponent::request_power_profiles_() {
   ESP_LOGW(TAG, "  No matching PDO found for any target profile");
 }
 
-void AP33772SComponent::loop() {
-  if (this->request_done_)
+void AP33772SComponent::send_keep_alive_() {
+  if (this->last_pdo_index_ == 0)
     return;
+
+  ESP_LOGD(TAG, "  Keep-alive: re-requesting PDO%d (vol_sel=%d, cur_sel=%d)",
+           this->last_pdo_index_, this->last_voltage_sel_, this->last_current_sel_);
+  uint8_t data[2] = {this->last_voltage_sel_,
+                     static_cast<uint8_t>((this->last_pdo_index_ << 4) | this->last_current_sel_)};
+  if (!this->write_bytes(AP33772S_REG_PD_REQMSG, data, 2)) {
+    ESP_LOGW(TAG, "  Keep-alive: failed to write PD_REQMSG");
+  }
+}
+
+void AP33772SComponent::loop() {
+  if (this->request_done_) {
+    if (this->keep_alive_interval_ms_ > 0 && this->last_pdo_index_ > 0) {
+      uint32_t now = millis();
+      if (now - this->last_keep_alive_millis_ >= this->keep_alive_interval_ms_) {
+        this->last_keep_alive_millis_ = now;
+        this->send_keep_alive_();
+      }
+    }
+    return;
+  }
 
   if (this->first_loop_) {
     this->first_loop_ = false;
@@ -492,6 +516,11 @@ void AP33772SComponent::dump_config() {
     this->log_pdo_(i);
   }
   ESP_LOGCONFIG(TAG, "  Request current limit: %s", YESNO(this->request_current_limit_));
+  if (this->keep_alive_interval_ms_ > 0) {
+    ESP_LOGCONFIG(TAG, "  Keep-alive interval: %u ms", this->keep_alive_interval_ms_);
+  } else {
+    ESP_LOGCONFIG(TAG, "  Keep-alive: disabled");
+  }
   if (!this->target_profiles_.empty()) {
     ESP_LOGCONFIG(TAG, "  Target profiles:");
     for (const auto &profile : this->target_profiles_) {

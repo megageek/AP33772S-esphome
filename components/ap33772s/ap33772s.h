@@ -63,6 +63,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void set_derating_threshold(uint8_t x) { this->derating_threshold_user_ = x; }
   void add_target_profile(float voltage, float current) { this->target_profiles_.push_back({voltage, current}); }
   void set_request_current_limit(bool x) { this->request_current_limit_ = x; }
+  void set_keep_alive_interval(uint32_t ms) { this->keep_alive_interval_ms_ = ms; }
   Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
   bool request_power_profile(float voltage, float current);
@@ -80,6 +81,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   bool pdo_is_detected_(int idx) const;
   void write_pd_reqmsg_(uint8_t pdo_index, uint8_t voltage_sel, uint8_t current_sel);
   void request_power_profiles_();
+  void send_keep_alive_();
 
   bool detected_{false};
   uint8_t status_{0};
@@ -94,6 +96,11 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   bool request_current_limit_{false};
   bool first_loop_{true};
   int msgrlt_retries_{0};
+  uint8_t last_pdo_index_{0};
+  uint8_t last_voltage_sel_{0};
+  uint8_t last_current_sel_{0};
+  uint32_t keep_alive_interval_ms_{1000};
+  uint32_t last_keep_alive_millis_{0};
   Trigger<> pd_negotiation_success_trigger_;
   Trigger<> pd_negotiation_failure_trigger_;
 
