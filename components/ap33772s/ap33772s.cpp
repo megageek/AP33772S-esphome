@@ -330,10 +330,41 @@ void AP33772SComponent::loop() {
     uint8_t status;
     if (this->read_register_(AP33772S_REG_STATUS, &status)) {
       this->latched_faults_ |= status & 0x78;
+      if (status & 0x04)
+        this->new_pdo_pending_ = true;
     }
   }
 
   if (this->request_done_) {
+    if (this->new_pdo_pending_) {
+      this->new_pdo_pending_ = false;
+      ESP_LOGCONFIG(TAG, "  NEWPDO detected, re-reading capabilities");
+      this->read_pdos_();
+      this->on_new_pdo_trigger_.trigger();
+
+      if (this->target_profiles_.empty())
+        return;
+
+      this->request_sent_ = false;
+      this->request_done_ = false;
+      this->use_default_5v_ = false;
+      this->last_pdo_index_ = 0;
+
+      this->request_power_profiles_();
+
+      if (this->use_default_5v_) {
+        ESP_LOGCONFIG(TAG, "  NEWPDO: using default 5V");
+        this->latched_faults_ = 0;
+        this->pd_negotiation_success_trigger_.trigger();
+        this->request_done_ = true;
+      } else if (!this->request_sent_) {
+        ESP_LOGW(TAG, "  NEWPDO: no matching PDO found, firing failure trigger");
+        this->pd_negotiation_failure_trigger_.trigger();
+        this->request_done_ = true;
+      }
+      return;
+    }
+
     if (this->keep_alive_interval_ms_ > 0 && this->last_pdo_index_ > 0) {
       uint32_t now = millis();
       if (now - this->last_keep_alive_millis_ >= this->keep_alive_interval_ms_) {

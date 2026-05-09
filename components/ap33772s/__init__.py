@@ -24,6 +24,7 @@ CONF_TARGET_PROFILES = "target_profiles"
 CONF_REQUEST_CURRENT_LIMIT = "request_current_limit"
 CONF_ON_PD_NEGOTIATION_SUCCESS = "on_pd_negotiation_success"
 CONF_ON_PD_NEGOTIATION_FAILURE = "on_pd_negotiation_failure"
+CONF_ON_NEW_PDO = "on_new_pdo"
 CONF_KEEP_ALIVE_INTERVAL = "keep_alive_interval"
 _CONF_PROFILE_VOLTAGE = "voltage"
 _CONF_PROFILE_CURRENT = "current"
@@ -86,6 +87,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_KEEP_ALIVE_INTERVAL, default="1000ms"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(),
             cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(),
+            cv.Optional(CONF_ON_NEW_PDO): automation.validate_automation(),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -125,6 +127,9 @@ async def to_code(config):
 
     for conf in config.get(CONF_ON_PD_NEGOTIATION_FAILURE, []):
         await automation.build_automation(var.get_pd_negotiation_failure_trigger(), [], conf)
+
+    for conf in config.get(CONF_ON_NEW_PDO, []):
+        await automation.build_automation(var.get_on_new_pdo_trigger(), [], conf)
 
 
 CONF_REQUEST_POWER_PROFILE = "request_power_profile"

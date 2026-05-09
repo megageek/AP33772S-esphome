@@ -75,6 +75,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void set_keep_alive_interval(uint32_t ms) { this->keep_alive_interval_ms_ = ms; }
   Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
+  Trigger<> *get_on_new_pdo_trigger() { return &this->on_new_pdo_trigger_; }
   bool request_power_profile(float voltage, float current);
   uint8_t get_pdo_count() const;
   PDOInfo get_pdo(uint8_t index) const;
@@ -114,9 +115,11 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   uint8_t last_current_sel_{0};
   uint32_t keep_alive_interval_ms_{1000};
   uint32_t last_keep_alive_millis_{0};
+  bool new_pdo_pending_{false};
   uint8_t latched_faults_{0};
   Trigger<> pd_negotiation_success_trigger_;
   Trigger<> pd_negotiation_failure_trigger_;
+  Trigger<> on_new_pdo_trigger_;
 
   uint8_t config_user_{0xF8};
   uint8_t pdconfig_user_{0x03};
