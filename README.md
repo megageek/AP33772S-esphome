@@ -52,8 +52,9 @@ The D1 mini hardware test uses ESP8266 board `d1_mini`, SDA on `GPIO4`, SCL on `
 
 ```bash
 make compile-d1-mini
+make hardware-smoke DEVICE=/dev/ttyUSB0
 make hardware-run DEVICE=/dev/ttyUSB0
 make hardware-logs DEVICE=/dev/ttyUSB0
 ```
 
-`hardware-run` uploads the firmware, resets before attaching logs, and should show the I2C scan finding `0x52`. Use it only when the D1 mini and AP33772S wiring match `examples/ap33772s-d1-mini.yaml`.
+`hardware-smoke` uploads the firmware, watches startup logs for the I2C scan and AP33772S probe, then exits once the expected lines are observed. Override its deadline with `HARDWARE_TIMEOUT=120` when needed. Use `hardware-run` or `hardware-logs` only for interactive debugging because they keep the serial monitor attached. Hardware targets assume the D1 mini and AP33772S wiring match `examples/ap33772s-d1-mini.yaml`.
