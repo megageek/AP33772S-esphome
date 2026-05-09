@@ -36,6 +36,10 @@ ap33772s:
     - voltage: 20.0
     - voltage: 12.0
     - voltage: 5.0
+  on_pd_negotiation_success:
+    - logger.log: "PD negotiation succeeded!"
+  on_pd_negotiation_failure:
+    - logger.log: "PD negotiation failed"
 
 binary_sensor:
   - platform: ap33772s

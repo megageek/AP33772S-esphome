@@ -65,6 +65,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void set_request_current_limit(bool x) { this->request_current_limit_ = x; }
   Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
+  bool request_power_profile(float voltage, float current);
 
  protected:
   bool read_register_(uint8_t reg, uint8_t *value);
@@ -103,6 +104,22 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   uint8_t ocp_threshold_user_{0x00};
   uint8_t otp_threshold_user_{0x78};
   uint8_t derating_threshold_user_{0x78};
+};
+
+template<typename... Ts> class PowerProfileRequestAction : public Action<Ts...> {
+ public:
+  PowerProfileRequestAction(AP33772SComponent *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(float, voltage)
+  TEMPLATABLE_VALUE(float, current)
+
+  void play(const Ts &...x) {
+    auto voltage = this->voltage_.value(x...);
+    auto current = this->current_.value_or(x..., -1.0f);
+    this->parent_->request_power_profile(voltage, current);
+  }
+
+ protected:
+  AP33772SComponent *parent_;
 };
 
 }  // namespace ap33772s

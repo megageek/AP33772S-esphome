@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import i2c
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, CONF_VOLTAGE, CONF_CURRENT
 
 DEPENDENCIES = ["i2c"]
 
@@ -82,8 +82,8 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_DR_THRESHOLD, default=120): cv.int_range(0, 255),
             cv.Optional(CONF_TARGET_PROFILES): cv.ensure_list(PROFILE_SCHEMA),
             cv.Optional(CONF_REQUEST_CURRENT_LIMIT, default=False): cv.boolean,
-            cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(single=True),
-            cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(),
+            cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -118,9 +118,38 @@ async def to_code(config):
             cg.add(var.add_target_profile(voltage, current))
 
     for conf in config.get(CONF_ON_PD_NEGOTIATION_SUCCESS, []):
-        trigger = cg.new_Pvariable(conf[CONF_ID], var.get_pd_negotiation_success_trigger())
-        await automation.build_automation(trigger, [], conf)
+        await automation.build_automation(var.get_pd_negotiation_success_trigger(), [], conf)
 
     for conf in config.get(CONF_ON_PD_NEGOTIATION_FAILURE, []):
-        trigger = cg.new_Pvariable(conf[CONF_ID], var.get_pd_negotiation_failure_trigger())
-        await automation.build_automation(trigger, [], conf)
+        await automation.build_automation(var.get_pd_negotiation_failure_trigger(), [], conf)
+
+
+CONF_REQUEST_POWER_PROFILE = "request_power_profile"
+PowerProfileRequestAction = ap33772s_ns.class_(
+    "PowerProfileRequestAction", automation.Action
+)
+
+REQUEST_POWER_PROFILE_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(AP33772SComponent),
+        cv.Required(CONF_VOLTAGE): cv.templatable(cv.positive_float),
+        cv.Optional(CONF_CURRENT): cv.templatable(cv.positive_float),
+    }
+)
+
+
+@automation.register_action(
+    CONF_REQUEST_POWER_PROFILE,
+    PowerProfileRequestAction,
+    REQUEST_POWER_PROFILE_SCHEMA,
+    synchronous=True,
+)
+async def request_power_profile_action_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_VOLTAGE], args, cg.float_)
+    cg.add(var.set_voltage(template_))
+    if CONF_CURRENT in config:
+        template_ = await cg.templatable(config[CONF_CURRENT], args, cg.float_)
+        cg.add(var.set_current(template_))
+    return var
