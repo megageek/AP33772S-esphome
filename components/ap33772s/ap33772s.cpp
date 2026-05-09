@@ -7,11 +7,62 @@ namespace ap33772s {
 
 static const char *const TAG = "ap33772s";
 
-void AP33772SComponent::setup() {}
+static constexpr uint8_t AP33772S_REG_STATUS = 0x01;
+static constexpr uint8_t AP33772S_REG_OPMODE = 0x03;
+static constexpr uint8_t AP33772S_REG_CONFIG = 0x04;
+static constexpr uint8_t AP33772S_REG_PDCONFIG = 0x05;
+
+bool AP33772SComponent::read_register_(uint8_t reg, uint8_t *value) {
+  if (this->read_byte(reg, value)) {
+    return true;
+  }
+
+  ESP_LOGE(TAG, "Failed to read register 0x%02X from AP33772S at address 0x%02X", reg, this->get_i2c_address());
+  return false;
+}
+
+void AP33772SComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Probing AP33772S at address 0x%02X", this->get_i2c_address());
+
+  if (!this->read_register_(AP33772S_REG_STATUS, &this->status_) ||
+      !this->read_register_(AP33772S_REG_OPMODE, &this->opmode_) ||
+      !this->read_register_(AP33772S_REG_CONFIG, &this->config_) ||
+      !this->read_register_(AP33772S_REG_PDCONFIG, &this->pdconfig_)) {
+    this->mark_failed();
+    return;
+  }
+
+  this->detected_ = true;
+
+  ESP_LOGCONFIG(TAG, "AP33772S responded: STATUS=0x%02X, OPMODE=0x%02X, CONFIG=0x%02X, PDCONFIG=0x%02X",
+                this->status_, this->opmode_, this->config_, this->pdconfig_);
+
+  if ((this->status_ & 0x80) != 0) {
+    ESP_LOGW(TAG, "STATUS reserved bit 7 is set; device response is unexpected");
+    this->status_set_warning();
+  }
+  if ((this->opmode_ & 0x1C) != 0) {
+    ESP_LOGW(TAG, "OPMODE reserved bits 4:2 are set; device response is unexpected");
+    this->status_set_warning();
+  }
+  if ((this->pdconfig_ & 0xF8) != 0) {
+    ESP_LOGW(TAG, "PDCONFIG reserved bits 7:3 are set; device response is unexpected");
+    this->status_set_warning();
+  }
+}
 
 void AP33772SComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "AP33772S:");
   LOG_I2C_DEVICE(this);
+  if (this->is_failed()) {
+    ESP_LOGE(TAG, "  Communication with AP33772S failed");
+    return;
+  }
+  ESP_LOGCONFIG(TAG, "  Detected: %s", YESNO(this->detected_));
+  ESP_LOGCONFIG(TAG, "  STATUS: 0x%02X", this->status_);
+  ESP_LOGCONFIG(TAG, "  OPMODE: 0x%02X", this->opmode_);
+  ESP_LOGCONFIG(TAG, "  CONFIG: 0x%02X", this->config_);
+  ESP_LOGCONFIG(TAG, "  PDCONFIG: 0x%02X", this->pdconfig_);
 }
 
 }  // namespace ap33772s

@@ -151,6 +151,7 @@ Status-style binary sensors or text diagnostics can be derived from `STATUS` and
 
 - Keep I2C reads/writes little-endian for all two-byte values.
 - Treat reserved bits as zero on write and ignore them on read.
+- Initial D1 mini hardware testing read `CONFIG = 0xFC`, even though the datasheet lists bit 2 as reserved with a power-on value of `0`; do not use that bit as an identity check.
 - Do not assume detailed PDO bit decoding until confirmed by hardware behavior or additional documentation.
 - For initial component work, prioritize periodic reads of `STATUS`, `OPMODE`, `VOLTAGE`, `CURRENT`, `TEMP`, `VREQ`, and `IREQ`.
 - For write support, start conservatively with explicit configuration/threshold setters and `PD_REQMSG`; avoid automatic power renegotiation until sensor reads and status handling are stable.
