@@ -25,6 +25,10 @@ ap33772s:
 
 The AP33772S uses fixed I2C address `0x52`.
 
+## Reference Material
+
+Use `documents/i2c-notes.md` as the working source for component implementation details. It distills the AP33772S datasheet into the I2C address, register map, status/configuration bits, PD request format, and sensor conversion factors relevant to this ESPHome component.
+
 ## Development
 
 Validate and compile all example configurations from the repository root:
