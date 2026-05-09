@@ -65,7 +65,7 @@ bool AP33772SSensorComponent::publish_voltage_() {
   }
 
   float voltage = static_cast<float>(raw) * 0.080f;
-  ESP_LOGD(TAG, "Voltage raw=%u → %.2f V", raw, voltage);
+  ESP_LOGV(TAG, "Voltage raw=%u → %.2f V", raw, voltage);
   this->voltage_sensor_->publish_state(voltage);
   return true;
 }
@@ -77,7 +77,7 @@ bool AP33772SSensorComponent::publish_current_() {
   }
 
   float current = static_cast<float>(raw) * 0.024f;
-  ESP_LOGD(TAG, "Current raw=%u → %.3f A", raw, current);
+  ESP_LOGV(TAG, "Current raw=%u → %.3f A", raw, current);
   this->current_sensor_->publish_state(current);
   return true;
 }
@@ -88,7 +88,7 @@ bool AP33772SSensorComponent::publish_temperature_() {
     return false;
   }
 
-  ESP_LOGD(TAG, "Temperature raw=%u → %u °C", raw, raw);
+  ESP_LOGV(TAG, "Temperature raw=%u → %u °C", raw, raw);
   this->temperature_sensor_->publish_state(static_cast<float>(raw));
   return true;
 }
@@ -100,7 +100,7 @@ bool AP33772SSensorComponent::publish_voltage_requested_() {
   }
 
   float voltage = static_cast<float>(raw) * 0.050f;
-  ESP_LOGD(TAG, "Requested voltage raw=%u → %.2f V", raw, voltage);
+  ESP_LOGV(TAG, "Requested voltage raw=%u → %.2f V", raw, voltage);
   this->voltage_requested_sensor_->publish_state(voltage);
   return true;
 }
@@ -112,7 +112,7 @@ bool AP33772SSensorComponent::publish_current_requested_() {
   }
 
   float current = static_cast<float>(raw) * 0.010f;
-  ESP_LOGD(TAG, "Requested current raw=%u → %.3f A", raw, current);
+  ESP_LOGV(TAG, "Requested current raw=%u → %.3f A", raw, current);
   this->current_requested_sensor_->publish_state(current);
   return true;
 }
