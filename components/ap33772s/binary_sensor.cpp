@@ -29,13 +29,13 @@ void AP33772SBinarySensorComponent::update() {
 
   if (ok && this->pd_connected_ != nullptr) {
     bool connected = (opmode & 0x02) != 0;
-    ESP_LOGD(TAG, "OPMODE raw=0x%02X → PD connected=%s", opmode, YESNO(connected));
+    ESP_LOGV(TAG, "OPMODE raw=0x%02X → PD connected=%s", opmode, YESNO(connected));
     this->pd_connected_->publish_state(connected);
   }
 
   if (ok && this->derating_ != nullptr) {
     bool active = (opmode & 0x40) != 0;
-    ESP_LOGD(TAG, "OPMODE raw=0x%02X → Derating=%s", opmode, YESNO(active));
+    ESP_LOGV(TAG, "OPMODE raw=0x%02X → Derating=%s", opmode, YESNO(active));
     this->derating_->publish_state(active);
   }
 
