@@ -11,6 +11,32 @@ static constexpr uint8_t AP33772S_REG_STATUS = 0x01;
 static constexpr uint8_t AP33772S_REG_OPMODE = 0x03;
 static constexpr uint8_t AP33772S_REG_CONFIG = 0x04;
 static constexpr uint8_t AP33772S_REG_PDCONFIG = 0x05;
+static constexpr uint8_t AP33772S_REG_UVPTHR = 0x17;
+
+static const char *uvp_threshold_str(uint8_t raw) {
+  switch (raw) {
+    case 1:
+      return "80%";
+    case 2:
+      return "75%";
+    case 3:
+      return "70%";
+    default:
+      return "unknown";
+  }
+}
+
+static const char *ocp_threshold_str(uint8_t raw) {
+  if (raw == 0)
+    return "auto";
+  static char buf[16];
+  snprintf(buf, sizeof(buf), "%.2fA", raw * 0.050f);
+  return buf;
+}
+static constexpr uint8_t AP33772S_REG_OVPTHR = 0x18;
+static constexpr uint8_t AP33772S_REG_OCPTHR = 0x19;
+static constexpr uint8_t AP33772S_REG_OTPTHR = 0x1A;
+static constexpr uint8_t AP33772S_REG_DRTHR = 0x1B;
 
 bool AP33772SComponent::read_register_(uint8_t reg, uint8_t *value) {
   if (this->read_byte(reg, value)) {
@@ -21,7 +47,18 @@ bool AP33772SComponent::read_register_(uint8_t reg, uint8_t *value) {
   return false;
 }
 
+bool AP33772SComponent::write_register_(uint8_t reg, uint8_t value) {
+  if (this->write_byte(reg, value)) {
+    return true;
+  }
+
+  ESP_LOGE(TAG, "Failed to write register 0x%02X to AP33772S at address 0x%02X", reg, this->get_i2c_address());
+  return false;
+}
+
 bool AP33772SComponent::read_u8(uint8_t reg, uint8_t *value) { return this->read_register_(reg, value); }
+
+bool AP33772SComponent::write_u8(uint8_t reg, uint8_t value) { return this->write_register_(reg, value); }
 
 bool AP33772SComponent::read_u16_le(uint8_t reg, uint16_t *value) {
   uint8_t data[2];
@@ -32,6 +69,62 @@ bool AP33772SComponent::read_u16_le(uint8_t reg, uint16_t *value) {
 
   *value = static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
   return true;
+}
+
+void AP33772SComponent::set_epr_mode(bool x) {
+  if (x)
+    this->pdconfig_user_ |= 0x01;
+  else
+    this->pdconfig_user_ &= ~0x01;
+}
+
+void AP33772SComponent::set_pps_avs(bool x) {
+  if (x)
+    this->pdconfig_user_ |= 0x02;
+  else
+    this->pdconfig_user_ &= ~0x02;
+}
+
+void AP33772SComponent::set_dr_swap(bool x) {
+  if (x)
+    this->pdconfig_user_ |= 0x04;
+  else
+    this->pdconfig_user_ &= ~0x04;
+}
+
+void AP33772SComponent::set_de_rating_enable(bool x) {
+  if (x)
+    this->config_user_ |= 0x80;
+  else
+    this->config_user_ &= ~0x80;
+}
+
+void AP33772SComponent::set_otp_enable(bool x) {
+  if (x)
+    this->config_user_ |= 0x40;
+  else
+    this->config_user_ &= ~0x40;
+}
+
+void AP33772SComponent::set_ocp_enable(bool x) {
+  if (x)
+    this->config_user_ |= 0x20;
+  else
+    this->config_user_ &= ~0x20;
+}
+
+void AP33772SComponent::set_ovp_enable(bool x) {
+  if (x)
+    this->config_user_ |= 0x10;
+  else
+    this->config_user_ &= ~0x10;
+}
+
+void AP33772SComponent::set_uvp_enable(bool x) {
+  if (x)
+    this->config_user_ |= 0x08;
+  else
+    this->config_user_ &= ~0x08;
 }
 
 void AP33772SComponent::setup() {
@@ -91,6 +184,33 @@ void AP33772SComponent::setup() {
     ESP_LOGW(TAG, "PDCONFIG reserved bits 7:3 are set; device response is unexpected");
     this->status_set_warning();
   }
+
+  uint8_t apply_config = (this->config_ & 0x07) | (this->config_user_ & 0xF8);
+  if (apply_config != this->config_) {
+    this->write_register_(AP33772S_REG_CONFIG, apply_config);
+    this->config_ = apply_config;
+    ESP_LOGCONFIG(TAG, "  CONFIG applied: 0x%02X", apply_config);
+  }
+
+  uint8_t apply_pdconfig = (this->pdconfig_ & 0xF8) | (this->pdconfig_user_ & 0x07);
+  if (apply_pdconfig != this->pdconfig_) {
+    this->write_register_(AP33772S_REG_PDCONFIG, apply_pdconfig);
+    this->pdconfig_ = apply_pdconfig;
+    ESP_LOGCONFIG(TAG, "  PDCONFIG applied: 0x%02X", apply_pdconfig);
+  }
+
+  this->write_register_(AP33772S_REG_UVPTHR, this->uvp_threshold_user_);
+  this->write_register_(AP33772S_REG_OVPTHR, this->ovp_offset_user_);
+  this->write_register_(AP33772S_REG_OCPTHR, this->ocp_threshold_user_);
+  this->write_register_(AP33772S_REG_OTPTHR, this->otp_threshold_user_);
+  this->write_register_(AP33772S_REG_DRTHR, this->derating_threshold_user_);
+
+  ESP_LOGCONFIG(TAG, "  Thresholds: UVP=%s, OVP=%.1fV, OCP=%s, OTP=%d°C, DR=%d°C",
+                uvp_threshold_str(this->uvp_threshold_user_),
+                this->ovp_offset_user_ * 0.080f,
+                ocp_threshold_str(this->ocp_threshold_user_),
+                this->otp_threshold_user_,
+                this->derating_threshold_user_);
 }
 
 void AP33772SComponent::dump_config() {
@@ -105,6 +225,19 @@ void AP33772SComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  OPMODE: 0x%02X", this->opmode_);
   ESP_LOGCONFIG(TAG, "  CONFIG: 0x%02X", this->config_);
   ESP_LOGCONFIG(TAG, "  PDCONFIG: 0x%02X", this->pdconfig_);
+  ESP_LOGCONFIG(TAG, "  De-rating: %s", (this->config_ & 0x80) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  OTP: %s", (this->config_ & 0x40) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  OCP: %s", (this->config_ & 0x20) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  OVP: %s", (this->config_ & 0x10) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  UVP: %s", (this->config_ & 0x08) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  EPR Mode: %s", (this->pdconfig_ & 0x01) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  PPS/AVS: %s", (this->pdconfig_ & 0x02) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  DR Swap: %s", (this->pdconfig_ & 0x04) ? "ENABLED" : "DISABLED");
+  ESP_LOGCONFIG(TAG, "  UVP threshold: %s", uvp_threshold_str(this->uvp_threshold_user_));
+  ESP_LOGCONFIG(TAG, "  OVP offset: %.1f V", this->ovp_offset_user_ * 0.080f);
+  ESP_LOGCONFIG(TAG, "  OCP threshold: %s", ocp_threshold_str(this->ocp_threshold_user_));
+  ESP_LOGCONFIG(TAG, "  OTP threshold: %d °C", this->otp_threshold_user_);
+  ESP_LOGCONFIG(TAG, "  Derating threshold: %d °C", this->derating_threshold_user_);
 }
 
 }  // namespace ap33772s
