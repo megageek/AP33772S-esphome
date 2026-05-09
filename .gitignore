@@ -1,0 +1,7 @@
+.esphome/
+.platformio/
+.pioenvs/
+.piolibdeps/
+.venv/
+__pycache__/
+*.py[cod]

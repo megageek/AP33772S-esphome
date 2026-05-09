@@ -1,0 +1,25 @@
+esphome:
+  name: ap33772s-component-example
+  friendly_name: AP33772S Component Example
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [ap33772s]
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+
+ap33772s:
+  id: ap33772s_hub
+  address: 0x52
