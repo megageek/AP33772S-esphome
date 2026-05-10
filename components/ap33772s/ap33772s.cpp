@@ -2,6 +2,8 @@
 
 #include "esphome/core/log.h"
 
+#include <algorithm>
+
 namespace esphome {
 namespace ap33772s {
 
@@ -179,10 +181,14 @@ float AP33772SComponent::pdo_min_voltage_(int idx) const {
 }
 
 float AP33772SComponent::pdo_max_current_(int idx) const {
-  uint8_t val = (this->pdos_[idx].raw >> 10) & 0x0F;
+  uint8_t val = this->pdo_current_sel_(idx);
   if (val == 0) return 1.25f;
   if (val == 15) return 5.0f;
   return 1.25f + 0.25f * val;
+}
+
+uint8_t AP33772SComponent::pdo_current_sel_(int idx) const {
+  return (this->pdos_[idx].raw >> 10) & 0x0F;
 }
 
 bool AP33772SComponent::pdo_is_fixed_(int idx) const {
@@ -259,7 +265,7 @@ bool AP33772SComponent::request_power_profile(float voltage, float current) {
       voltage_sel = static_cast<uint8_t>(voltage / 0.1f);
     }
 
-    uint8_t current_sel = 0x0F;
+    uint8_t current_sel = this->pdo_current_sel_(i);
     if (this->request_current_limit_ && current >= 0.0f) {
       if (current >= 5.0f) {
         current_sel = 0x0F;
@@ -268,10 +274,16 @@ bool AP33772SComponent::request_power_profile(float voltage, float current) {
       } else {
         current_sel = static_cast<uint8_t>((current - 1.0f) * 3.75f + 0.5f);
       }
+      current_sel = std::min(current_sel, this->pdo_current_sel_(i));
     }
 
-    ESP_LOGCONFIG(TAG, "  Requesting PDO%d (%s, %.1fV, cur_sel=%d, vol_sel=%d)", i + 1,
-                  is_fixed ? "Fixed" : (is_epr ? "AVS" : "PPS"), pdo_v, current_sel, voltage_sel);
+    uint16_t reqmsg = static_cast<uint16_t>(voltage_sel) |
+                      (static_cast<uint16_t>(current_sel) << 8) |
+                      (static_cast<uint16_t>(i + 1) << 12);
+    ESP_LOGCONFIG(TAG, "  Requesting PDO%d (%s, target=%.1fV, max=%.1fV, cur_sel=%u, vol_sel=%u, "
+                       "PD_REQMSG=0x%04X)",
+                  i + 1, is_fixed ? "Fixed" : (is_epr ? "AVS" : "PPS"), voltage, pdo_v, current_sel,
+                  voltage_sel, reqmsg);
     this->last_pdo_index_ = i + 1;
     this->last_voltage_sel_ = voltage_sel;
     this->last_current_sel_ = current_sel;

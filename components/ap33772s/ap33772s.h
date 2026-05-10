@@ -91,6 +91,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   float pdo_voltage_(int idx) const;
   float pdo_min_voltage_(int idx) const;
   float pdo_max_current_(int idx) const;
+  uint8_t pdo_current_sel_(int idx) const;
   bool pdo_is_fixed_(int idx) const;
   bool pdo_is_detected_(int idx) const;
   void write_pd_reqmsg_(uint8_t pdo_index, uint8_t voltage_sel, uint8_t current_sel);

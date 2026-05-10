@@ -116,9 +116,9 @@ If no PDO matches any target profile, the failure trigger fires in the first `lo
 
 ### `request_current_limit`
 
-When `false` (default), `CURRENT_SEL` is always `0xF` (maximum, 5A+). Some chargers ignore non-maximum current requests, so this default is safest.
+When `false` (default), `CURRENT_SEL` requests the selected PDO/APDO's advertised maximum current.
 
-When `true` and the profile specifies a current, `CURRENT_SEL` is scaled to match: `0x0` = 1.0A, `0xF` = 5.0A+, 1.0-5.0A uses the formula `(current - 1.0) × 3.75 + 0.5`, rounded.
+When `true` and the profile specifies a current, `CURRENT_SEL` is scaled to match and capped to the selected PDO/APDO maximum: `0x0` = 1.0A, `0xF` = 5.0A+, 1.0-5.0A uses the formula `(current - 1.0) × 3.75 + 0.5`, rounded.
 
 ### `keep_alive_interval`
 
