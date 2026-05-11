@@ -357,6 +357,29 @@ void AP33772SComponent::loop() {
     }
   }
 
+  if (this->initial_negotiation_pending_) {
+    uint32_t now = millis();
+    if (now - this->setup_millis_ < this->initial_negotiation_delay_ms_)
+      return;
+
+    this->initial_negotiation_pending_ = false;
+    ESP_LOGCONFIG(TAG, "  Starting deferred initial PD negotiation");
+    this->request_power_profiles_();
+
+    if (this->use_default_5v_) {
+      ESP_LOGCONFIG(TAG, "  Using default 5V, firing success trigger");
+      this->latched_faults_ = 0;
+      this->pd_negotiation_success_trigger_.trigger();
+      this->request_done_ = true;
+      return;
+    } else if (!this->request_sent_) {
+      ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
+      this->pd_negotiation_failure_trigger_.trigger();
+      this->request_done_ = true;
+      return;
+    }
+  }
+
   if (this->request_done_) {
     if (this->new_pdo_pending_) {
       this->new_pdo_pending_ = false;
@@ -579,7 +602,14 @@ void AP33772SComponent::setup() {
                 this->derating_threshold_user_);
 
   this->read_pdos_();
-  this->request_power_profiles_();
+  this->setup_millis_ = millis();
+  if (!this->target_profiles_.empty() &&
+      (this->defer_initial_negotiation_ || this->initial_negotiation_delay_ms_ > 0)) {
+    this->initial_negotiation_pending_ = true;
+    ESP_LOGCONFIG(TAG, "  Initial PD negotiation deferred by %u ms", this->initial_negotiation_delay_ms_);
+  } else {
+    this->request_power_profiles_();
+  }
 }
 
 void AP33772SComponent::dump_config() {
@@ -612,6 +642,10 @@ void AP33772SComponent::dump_config() {
     this->log_pdo_(i);
   }
   ESP_LOGCONFIG(TAG, "  Request current limit: %s", YESNO(this->request_current_limit_));
+  ESP_LOGCONFIG(TAG, "  Defer initial negotiation: %s", YESNO(this->defer_initial_negotiation_));
+  if (this->initial_negotiation_delay_ms_ > 0) {
+    ESP_LOGCONFIG(TAG, "  Initial negotiation delay: %u ms", this->initial_negotiation_delay_ms_);
+  }
   if (this->keep_alive_interval_ms_ > 0) {
     ESP_LOGCONFIG(TAG, "  Keep-alive interval: %u ms", this->keep_alive_interval_ms_);
   } else {

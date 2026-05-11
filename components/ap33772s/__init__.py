@@ -26,6 +26,8 @@ CONF_ON_PD_NEGOTIATION_SUCCESS = "on_pd_negotiation_success"
 CONF_ON_PD_NEGOTIATION_FAILURE = "on_pd_negotiation_failure"
 CONF_ON_NEW_PDO = "on_new_pdo"
 CONF_KEEP_ALIVE_INTERVAL = "keep_alive_interval"
+CONF_DEFER_INITIAL_NEGOTIATION = "defer_initial_negotiation"
+CONF_INITIAL_NEGOTIATION_DELAY = "initial_negotiation_delay"
 CONF_HARD_RESET = "hard_reset"
 _CONF_PROFILE_VOLTAGE = "voltage"
 _CONF_PROFILE_CURRENT = "current"
@@ -86,6 +88,8 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_TARGET_PROFILES): cv.ensure_list(PROFILE_SCHEMA),
             cv.Optional(CONF_REQUEST_CURRENT_LIMIT, default=False): cv.boolean,
             cv.Optional(CONF_KEEP_ALIVE_INTERVAL, default="1000ms"): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_DEFER_INITIAL_NEGOTIATION, default=True): cv.boolean,
+            cv.Optional(CONF_INITIAL_NEGOTIATION_DELAY, default="0ms"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_ON_PD_NEGOTIATION_SUCCESS): automation.validate_automation(),
             cv.Optional(CONF_ON_PD_NEGOTIATION_FAILURE): automation.validate_automation(),
             cv.Optional(CONF_ON_NEW_PDO): automation.validate_automation(),
@@ -116,6 +120,8 @@ async def to_code(config):
     cg.add(var.set_derating_threshold(config[CONF_DR_THRESHOLD]))
     cg.add(var.set_request_current_limit(config[CONF_REQUEST_CURRENT_LIMIT]))
     cg.add(var.set_keep_alive_interval(config[CONF_KEEP_ALIVE_INTERVAL]))
+    cg.add(var.set_defer_initial_negotiation(config[CONF_DEFER_INITIAL_NEGOTIATION]))
+    cg.add(var.set_initial_negotiation_delay(config[CONF_INITIAL_NEGOTIATION_DELAY]))
 
     if target_profiles := config.get(CONF_TARGET_PROFILES):
         for profile in target_profiles:

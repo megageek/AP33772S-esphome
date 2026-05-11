@@ -90,6 +90,8 @@ ap33772s:
   derating_threshold: 120             # degrees C
   request_current_limit: false        # limit CURRENT_SEL to profile value
   keep_alive_interval: 1000ms         # re-request interval, 0 to disable
+  defer_initial_negotiation: true     # wait until setup completes before first request
+  initial_negotiation_delay: 0ms      # optional extra delay after setup
   target_profiles:                    # priority-ordered list (optional)
     - voltage: 20.0                   # voltage only (max current)
     - voltage: 12.0
@@ -125,6 +127,16 @@ When `true` and the profile specifies a current, `CURRENT_SEL` is scaled to matc
 Some USB PD chargers disconnect if they don't receive a new PD request periodically. The keep-alive re-writes the last successful PD_REQMSG at this interval to prevent disconnection. Default `1000ms`. Set to `0ms` to disable.
 
 When the charger changes capabilities (NEWPDO), keep-alive is automatically suspended while re-negotiation runs, then resumes with the new profile.
+
+### `defer_initial_negotiation`
+
+When `true` (default), the component probes and configures the AP33772S during ESPHome setup, then waits until the main loop starts before requesting the first `target_profiles` match. This avoids changing the PD output voltage while other components are still configuring.
+
+Set to `false` to restore the older behavior where the first PD request is sent during component setup.
+
+### `initial_negotiation_delay`
+
+Adds an extra delay before the first automatic `target_profiles` request. Any non-zero value defers initial negotiation even if `defer_initial_negotiation` is `false`. Runtime `request_power_profile` actions, NEWPDO re-negotiation, and keep-alive behavior are unchanged.
 
 ## Sensors
 

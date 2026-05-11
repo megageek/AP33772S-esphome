@@ -73,6 +73,8 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   void add_target_profile(float voltage, float current) { this->target_profiles_.push_back({voltage, current}); }
   void set_request_current_limit(bool x) { this->request_current_limit_ = x; }
   void set_keep_alive_interval(uint32_t ms) { this->keep_alive_interval_ms_ = ms; }
+  void set_defer_initial_negotiation(bool x) { this->defer_initial_negotiation_ = x; }
+  void set_initial_negotiation_delay(uint32_t ms) { this->initial_negotiation_delay_ms_ = ms; }
   Trigger<> *get_pd_negotiation_success_trigger() { return &this->pd_negotiation_success_trigger_; }
   Trigger<> *get_pd_negotiation_failure_trigger() { return &this->pd_negotiation_failure_trigger_; }
   Trigger<> *get_on_new_pdo_trigger() { return &this->on_new_pdo_trigger_; }
@@ -117,6 +119,10 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   uint8_t last_current_sel_{0};
   uint32_t keep_alive_interval_ms_{1000};
   uint32_t last_keep_alive_millis_{0};
+  bool defer_initial_negotiation_{true};
+  bool initial_negotiation_pending_{false};
+  uint32_t initial_negotiation_delay_ms_{0};
+  uint32_t setup_millis_{0};
   bool new_pdo_pending_{false};
   uint8_t latched_faults_{0};
   Trigger<> pd_negotiation_success_trigger_;
