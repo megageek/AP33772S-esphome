@@ -363,6 +363,7 @@ void AP33772SComponent::loop() {
       return;
 
     this->initial_negotiation_pending_ = false;
+    this->first_loop_ = false;
     ESP_LOGCONFIG(TAG, "  Starting deferred initial PD negotiation");
     this->request_power_profiles_();
 
@@ -378,6 +379,7 @@ void AP33772SComponent::loop() {
       this->request_done_ = true;
       return;
     }
+    return;
   }
 
   if (this->request_done_) {
