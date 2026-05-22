@@ -113,7 +113,7 @@ class AP33772SComponent : public Component, public i2c::I2CDevice {
   bool request_current_limit_{false};
   bool first_loop_{true};
   bool use_default_5v_{false};
-  int msgrlt_retries_{0};
+  uint32_t request_sent_millis_{0};
   uint8_t last_pdo_index_{0};
   uint8_t last_voltage_sel_{0};
   uint8_t last_current_sel_{0};

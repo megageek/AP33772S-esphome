@@ -289,7 +289,7 @@ bool AP33772SComponent::request_power_profile(float voltage, float current) {
     this->last_current_sel_ = current_sel;
     this->write_pd_reqmsg_(i + 1, voltage_sel, current_sel);
     this->request_sent_ = true;
-    this->msgrlt_retries_ = 0;
+    this->request_sent_millis_ = millis();
     this->request_done_ = false;
     return true;
   }
@@ -482,13 +482,12 @@ void AP33772SComponent::loop() {
   if (!this->request_sent_)
     return;
 
-  if (this->msgrlt_retries_ > 50) {
+  if (millis() - this->request_sent_millis_ > 2000) {
     ESP_LOGW(TAG, "  Power profile request timed out");
     this->pd_negotiation_failure_trigger_.trigger();
     this->request_done_ = true;
     return;
   }
-  this->msgrlt_retries_++;
 
   uint8_t msgrlt;
   if (!this->read_register_(AP33772S_REG_PD_MSGRLT, &msgrlt))
