@@ -374,15 +374,43 @@ void AP33772SComponent::loop() {
       this->request_done_ = true;
       return;
     } else if (!this->request_sent_) {
-      ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
-      this->pd_negotiation_failure_trigger_.trigger();
-      this->request_done_ = true;
+      bool no_pdo = true;
+      for (int i = 0; i < 13; i++) {
+        if (this->pdo_is_detected_(i)) {
+          no_pdo = false;
+          break;
+        }
+      }
+      if (no_pdo) {
+        ESP_LOGCONFIG(TAG, "  No PDOs available yet, waiting for NEWPDO");
+        this->request_done_ = true;
+      } else {
+        ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
+        this->pd_negotiation_failure_trigger_.trigger();
+        this->request_done_ = true;
+      }
       return;
     }
     return;
   }
 
   if (this->request_done_) {
+    if (this->last_pdo_index_ == 0 && !this->new_pdo_pending_ &&
+        this->setup_millis_ > 0 && millis() - this->setup_millis_ > 10000) {
+      bool any_pdo = false;
+      for (int i = 0; i < 13; i++) {
+        if (this->pdo_is_detected_(i)) {
+          any_pdo = true;
+          break;
+        }
+      }
+      if (!any_pdo) {
+        ESP_LOGW(TAG, "  No PDOs received within 10s of startup, firing failure trigger");
+        this->pd_negotiation_failure_trigger_.trigger();
+        this->setup_millis_ = 0;
+      }
+    }
+
     if (this->new_pdo_pending_) {
       this->new_pdo_pending_ = false;
       ESP_LOGCONFIG(TAG, "  NEWPDO detected, re-reading capabilities");
@@ -432,9 +460,21 @@ void AP33772SComponent::loop() {
       return;
     }
     if (!this->target_profiles_.empty() && !this->request_sent_) {
-      ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
-      this->pd_negotiation_failure_trigger_.trigger();
-      this->request_done_ = true;
+      bool no_pdo = true;
+      for (int i = 0; i < 13; i++) {
+        if (this->pdo_is_detected_(i)) {
+          no_pdo = false;
+          break;
+        }
+      }
+      if (no_pdo) {
+        ESP_LOGCONFIG(TAG, "  No PDOs available yet, waiting for NEWPDO");
+        this->request_done_ = true;
+      } else {
+        ESP_LOGW(TAG, "  No matching PDO found, firing failure trigger");
+        this->pd_negotiation_failure_trigger_.trigger();
+        this->request_done_ = true;
+      }
       return;
     }
   }
