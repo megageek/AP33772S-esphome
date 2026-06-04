@@ -396,7 +396,7 @@ void AP33772SComponent::loop() {
 
   if (this->request_done_) {
     if (this->last_pdo_index_ == 0 && !this->new_pdo_pending_ &&
-        this->setup_millis_ > 0 && millis() - this->setup_millis_ > 10000) {
+        this->setup_millis_ > 0 && (this->legacy_mode_ || millis() - this->setup_millis_ > 10000)) {
       bool any_pdo = false;
       for (int i = 0; i < 13; i++) {
         if (this->pdo_is_detected_(i)) {
@@ -588,6 +588,7 @@ void AP33772SComponent::setup() {
   ESP_LOGCONFIG(TAG, "    De-rating: %s", (this->opmode_ & 0x40) ? "Active" : "Inactive");
   ESP_LOGCONFIG(TAG, "    Data Role: %s", (this->opmode_ & 0x20) ? "DFP" : "UFP");
   ESP_LOGCONFIG(TAG, "    PD Mode: %s", (this->opmode_ & 0x02) ? "Connected" : "Not connected");
+  this->legacy_mode_ = (this->opmode_ & 0x01) != 0;
   ESP_LOGCONFIG(TAG, "    Legacy Mode: %s", (this->opmode_ & 0x01) ? "Active" : "Inactive");
   ESP_LOGCONFIG(TAG, "  CONFIG protections enabled:");
   ESP_LOGCONFIG(TAG, "    De-rating=%s OTP=%s OCP=%s OVP=%s UVP=%s",
